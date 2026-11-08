@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -147,23 +148,57 @@ class MainActivity : Activity() {
         favoritesAdapter.hidden = hidden
         appsAdapter.hidden = if (showHidden) hidden else emptySet()
 
+        // Se o app focado vai sumir (desinstalado/desabilitado), foca o vizinho em vez de
+        // deixar o RecyclerView jogar o foco para os botões do topo.
+        val refocus = focusTargetAfterRemoval(favorites, apps)
         favoritesAdapter.submitList(favorites)
         appsAdapter.submitList(apps) {
-            if (firstLoad) {
-                firstLoad = false
-                focusFirstItem()
+            when {
+                firstLoad -> { firstLoad = false; focusFirstItem() }
+                refocus != null -> focusPosition(refocus.first, refocus.second)
             }
         }
         favoritesView.visibility = if (favorites.isEmpty()) View.GONE else View.VISIBLE
         favoritesEmpty.visibility = if (favorites.isEmpty()) View.VISIBLE else View.GONE
     }
 
+    /** (lista, posição) que deve receber foco se o item focado não existir na nova lista. */
+    private fun focusTargetAfterRemoval(
+        newFavorites: List<AppEntry>,
+        newApps: List<AppEntry>,
+    ): Pair<RecyclerView, Int>? {
+        val focused = currentFocus ?: return null
+        for ((rv, newList) in listOf(favoritesView to newFavorites, appsView to newApps)) {
+            val holder = rv.findContainingViewHolder(focused) ?: continue
+            val oldPos = holder.bindingAdapterPosition
+            val adapter = rv.adapter as AppAdapter
+            if (oldPos == RecyclerView.NO_POSITION || oldPos >= adapter.itemCount) return null
+            val pkg = adapter.currentList[oldPos].packageName
+            if (newList.any { it.packageName == pkg }) return null
+            return when {
+                newList.isNotEmpty() -> rv to oldPos.coerceAtMost(newList.size - 1)
+                rv === favoritesView && newApps.isNotEmpty() -> appsView to 0
+                else -> null
+            }
+        }
+        return null
+    }
+
     private fun focusFirstItem() {
         val target = if (favoritesAdapter.itemCount > 0) favoritesView else appsView
-        target.post {
-            target.scrollToPosition(0)
-            target.post { target.layoutManager?.findViewByPosition(0)?.requestFocus() }
-        }
+        focusPosition(target, 0)
+    }
+
+    /** Foca o item na posição após o próximo layout (antes disso a view pode não existir). */
+    private fun focusPosition(rv: RecyclerView, position: Int) {
+        rv.scrollToPosition(position)
+        rv.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                rv.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                (rv.layoutManager?.findViewByPosition(position) ?: rv.getChildAt(0))?.requestFocus()
+            }
+        })
+        rv.requestLayout()
     }
 
     private fun computeSpanCount(): Int {
