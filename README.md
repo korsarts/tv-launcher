@@ -6,7 +6,8 @@ Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick
 - APK de ~180 KB, sem Leanback/Compose/AppCompat: só `Activity` + `RecyclerView`
 - Relógio e data, linha de **Favoritos** (ordenável) e grade de **todos os apps**
 - Usa o banner 16:9 dos apps de TV; apps de celular (sideload) aparecem com ícone e nome
-- Menu do app (segure OK ou aperte MENU): favoritar, mover, ocultar, informações, desinstalar
+- Menu lateral do app (segure OK ou aperte MENU): favoritar, mover (◀ ▶ e OK para confirmar), ocultar, informações, desinstalar
+- Cabeçalho recolhe ao descer na grade; rolagem suave mantendo o próximo card à vista
 - Atualiza sozinho quando um app é instalado ou removido
 - Serviço de acessibilidade **opcional** para o botão HOME abrir este launcher sem root
 
@@ -43,6 +44,30 @@ adb shell pm enable com.google.android.tvlauncher
 ```
 > Com o launcher original desabilitado, a linha de recomendações e o atalho de entradas do
 > Google somem. As configurações continuam acessíveis pelo ícone de engrenagem.
+
+### Se o HOME continuar abrindo o launcher original
+
+- **Definir como preferido não basta.** O `tvlauncher` declara o HOME com prioridade 2, e o
+  Android 9 sempre escolhe o candidato de maior prioridade sem consultar a preferência. Por isso
+  `adb shell cmd package set-home-activity com.korsarts.tvlauncher/.MainActivity` retorna
+  `Success` mas não muda nada enquanto o launcher original estiver habilitado. Use a opção **B**.
+  Ainda vale rodar esse comando se houver outro launcher instalado (Projectivy, ATV Launcher...),
+  para o sistema escolher o nosso entre os que sobram.
+- **Outro launcher pode estar capturando o botão.** Launchers como o Projectivy têm o próprio
+  serviço de acessibilidade, que consome o HOME antes do nosso. Veja quais estão ativos:
+  ```bash
+  adb shell settings get secure enabled_accessibility_services
+  ```
+  Deixe só o nosso (isso substitui a lista inteira):
+  ```bash
+  adb shell settings put secure enabled_accessibility_services com.korsarts.tvlauncher/com.korsarts.tvlauncher.HomeButtonService
+  adb shell settings put secure accessibility_enabled 1
+  ```
+- **Para conferir** qual app o sistema abre no HOME:
+  ```bash
+  adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+  ```
+  A última linha deve ser `com.korsarts.tvlauncher/.MainActivity`.
 
 ## Build
 
