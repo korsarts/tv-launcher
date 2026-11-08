@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Switch estático 40x22dp (ativado = state_activated). Knob posicionado por insets (API 21+). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true">
+        <layer-list>
+            <item>
+                <shape>
+                    <solid android:color="@color/accent" />
+                    <corners android:radius="11dp" />
+                </shape>
+            </item>
+            <item android:bottom="3dp" android:left="21dp" android:right="3dp" android:top="3dp">
+                <shape android:shape="oval">
+                    <solid android:color="#FFFFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape>
+                    <solid android:color="@color/toggle_off" />
+                    <corners android:radius="11dp" />
+                </shape>
+            </item>
+            <item android:bottom="3dp" android:left="3dp" android:right="21dp" android:top="3dp">
+                <shape android:shape="oval">
+                    <solid android:color="#FFD1D5DB" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

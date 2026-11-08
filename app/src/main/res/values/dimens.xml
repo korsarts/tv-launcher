@@ -2,9 +2,16 @@
 <resources>
     <!-- Mi TV Stick: 1920x1080 @ xhdpi = 960x540dp -->
     <dimen name="screen_padding_h">48dp</dimen>
-    <dimen name="screen_padding_v">27dp</dimen>
+    <dimen name="screen_padding_v">24dp</dimen>
     <dimen name="card_width">156dp</dimen>
     <dimen name="card_height">88dp</dimen>
     <dimen name="card_margin">8dp</dimen>
-    <dimen name="card_radius">8dp</dimen>
+    <dimen name="card_radius">12dp</dimen>
+    <dimen name="focus_ring_width">3dp</dimen>
+    <!-- Espaço vertical das fileiras para o card focado (escalado) não ser cortado -->
+    <dimen name="row_padding_v">10dp</dimen>
+    <!-- screen_padding_h - card_margin: a borda do card alinha com os títulos -->
+    <dimen name="row_padding_h">40dp</dimen>
+    <dimen name="panel_width">360dp</dimen>
+    <dimen name="panel_radius">20dp</dimen>
 </resources>

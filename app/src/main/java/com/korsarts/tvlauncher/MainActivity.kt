@@ -1,7 +1,8 @@
 package com.korsarts.tvlauncher
 
+import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.AlertDialog
+import android.app.ActivityOptions
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,26 +12,31 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MainActivity : Activity() {
+class MainActivity : Activity(), AppAdapter.Listener {
 
     private lateinit var prefs: Prefs
     private lateinit var repo: AppRepository
+    private lateinit var content: CollapsingLayout
+    private lateinit var header: View
     private lateinit var favoritesView: RecyclerView
     private lateinit var appsView: RecyclerView
     private lateinit var favoritesEmpty: TextView
     private lateinit var favoritesAdapter: AppAdapter
     private lateinit var appsAdapter: AppAdapter
+    private lateinit var panel: SidePanel
+    private var spanCount = 1
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -42,12 +48,20 @@ class MainActivity : Activity() {
     private var reloadPending = false
     private var resumed = false
 
+    /** Favorito sendo reordenado (modo mover), ou null. */
+    private var movingPkg: String? = null
+
+    /** Onde o foco estava quando o painel abriu, para devolvê-lo ao fechar. */
+    private var focusBeforePanel: View? = null
+
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (resumed) loadApps() else reloadPending = true
         }
     }
 
+    // InvalidSetHasFixedSize: falso positivo, a grade usa 0dp + layout_weight (altura fixa).
+    @SuppressLint("InvalidSetHasFixedSize")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -55,25 +69,50 @@ class MainActivity : Activity() {
         prefs = Prefs(this)
         repo = AppRepository(this)
 
+        content = findViewById(R.id.content)
+        header = findViewById(R.id.header)
         favoritesView = findViewById(R.id.favorites)
         appsView = findViewById(R.id.apps)
         favoritesEmpty = findViewById(R.id.favorites_empty)
 
-        favoritesAdapter = AppAdapter(::launch, ::showAppMenu)
-        appsAdapter = AppAdapter(::launch, ::showAppMenu)
+        favoritesAdapter = AppAdapter(this)
+        appsAdapter = AppAdapter(this)
 
-        favoritesView.layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
+        val res = resources
+        val peekH = res.getDimensionPixelSize(R.dimen.card_width) / 2
+        val peekV = res.getDimensionPixelSize(R.dimen.card_height) / 2
+        spanCount = computeSpanCount()
+
+        favoritesView.layoutManager = RevealLinearLayoutManager(this, peekH)
         favoritesView.adapter = favoritesAdapter
-        favoritesView.itemAnimator = null
+        // Animador só nos favoritos, para a reordenação deslizar. Sem crossfade de "change".
+        favoritesView.itemAnimator = DefaultItemAnimator().apply {
+            supportsChangeAnimations = false
+            moveDuration = 180
+            addDuration = 120
+            removeDuration = 120
+        }
 
-        appsView.layoutManager = GridLayoutManager(this, computeSpanCount())
+        appsView.layoutManager = RevealGridLayoutManager(this, spanCount, peekV)
         appsView.adapter = appsAdapter
         appsView.itemAnimator = null
+        appsView.setHasFixedSize(true)
+        appsView.setItemViewCacheSize(spanCount * 2)
 
-        findViewById<ImageButton>(R.id.btn_settings).setOnClickListener {
-            safeStart(Intent(Settings.ACTION_SETTINGS))
-        }
+        // Começam invisíveis e entram com fade quando os apps carregam.
+        favoritesView.alpha = 0f
+        appsView.alpha = 0f
+
+        panel = SidePanel(
+            findViewById(R.id.root),
+            onOpened = { content.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS },
+            onClosed = ::restoreFocusAfterPanel,
+        )
+
+        findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
+
+        content.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus -> onFocusMoved(newFocus) }
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -107,18 +146,40 @@ class MainActivity : Activity() {
         super.onDestroy()
     }
 
-    /** HOME pressionado com o launcher já aberto: volta ao início. */
+    /** HOME pressionado com o launcher já aberto: volta ao início sem animação. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        appsView.scrollToPosition(0)
-        focusFirstItem()
+        goHome(animate = false)
     }
 
     /** Launcher não deve fechar com BACK. */
     @Deprecated("Deprecated in Java")
     @Suppress("MissingSuperCall")
     override fun onBackPressed() {
+        when {
+            panel.isOpen -> panel.back()
+            movingPkg != null -> exitMoveMode()
+            else -> goHome(animate = true)
+        }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // MENU com o painel aberto fecha o painel.
+        if (event.keyCode == KeyEvent.KEYCODE_MENU && panel.isOpen) {
+            if (event.action == KeyEvent.ACTION_UP) panel.close()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun goHome(animate: Boolean) {
+        panel.close(animate)
+        exitMoveMode()
+        content.setCollapsed(false, animate)
+        appsView.stopScroll()
+        favoritesView.stopScroll()
         appsView.scrollToPosition(0)
+        favoritesView.scrollToPosition(0)
         focusFirstItem()
     }
 
@@ -145,21 +206,37 @@ class MainActivity : Activity() {
         val favorites = prefs.favorites.mapNotNull { byPkg[it] }
         val apps = allApps.filter { showHidden || it.packageName !in hidden }
 
-        favoritesAdapter.hidden = hidden
-        appsAdapter.hidden = if (showHidden) hidden else emptySet()
+        favoritesAdapter.setHidden(hidden)
+        appsAdapter.setHidden(if (showHidden) hidden else emptySet())
 
         // Se o app focado vai sumir (desinstalado/desabilitado), foca o vizinho em vez de
         // deixar o RecyclerView jogar o foco para os botões do topo.
         val refocus = focusTargetAfterRemoval(favorites, apps)
-        favoritesAdapter.submitList(favorites)
+        favoritesAdapter.submitList(favorites) {
+            movingPkg?.let { pkg -> revealPosition(favoritesView, favoritesAdapter.indexOf(pkg)) }
+        }
         appsAdapter.submitList(apps) {
             when {
-                firstLoad -> { firstLoad = false; focusFirstItem() }
+                firstLoad -> {
+                    firstLoad = false
+                    focusFirstItem()
+                    fadeIn(favoritesView)
+                    fadeIn(appsView)
+                }
                 refocus != null -> focusPosition(refocus.first, refocus.second)
             }
         }
         favoritesView.visibility = if (favorites.isEmpty()) View.GONE else View.VISIBLE
         favoritesEmpty.visibility = if (favorites.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun fadeIn(view: View) {
+        view.translationY = resources.displayMetrics.density * 16
+        view.animate().alpha(1f).translationY(0f)
+            .setDuration(Motion.PANEL_MS)
+            .setInterpolator(Motion.STANDARD)
+            .withLayer() // camada só durante a animação; liberada no fim
+            .start()
     }
 
     /** (lista, posição) que deve receber foco se o item focado não existir na nova lista. */
@@ -184,6 +261,41 @@ class MainActivity : Activity() {
         return null
     }
 
+    // ---------------------------------------------------------------- foco
+
+    /** Recolhe o cabeçalho ao descer na grade e o mostra de novo ao voltar para cima. */
+    private fun onFocusMoved(newFocus: View?) {
+        if (newFocus == null || panel.isOpen) return
+
+        movingPkg?.let { pkg ->
+            if (packageAt(favoritesView, newFocus) != pkg) exitMoveMode()
+        }
+
+        val gridHolder = appsView.findContainingViewHolder(newFocus)
+        if (gridHolder != null) {
+            // Linha 0 mantém o estado atual (histerese): entrar na grade não esconde os favoritos.
+            val pos = gridHolder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION && pos / spanCount >= 1) content.setCollapsed(true)
+        } else if (newFocus.isDescendantOf(header)) {
+            content.setCollapsed(false)
+        }
+    }
+
+    private fun packageAt(rv: RecyclerView, view: View): String? {
+        val pos = rv.findContainingViewHolder(view)?.bindingAdapterPosition ?: return null
+        val adapter = rv.adapter as AppAdapter
+        return if (pos in 0 until adapter.itemCount) adapter.currentList[pos].packageName else null
+    }
+
+    private fun View.isDescendantOf(ancestor: View): Boolean {
+        var v: View? = this
+        while (v != null) {
+            if (v === ancestor) return true
+            v = v.parent as? View
+        }
+        return false
+    }
+
     private fun focusFirstItem() {
         val target = if (favoritesAdapter.itemCount > 0) favoritesView else appsView
         focusPosition(target, 0)
@@ -191,11 +303,27 @@ class MainActivity : Activity() {
 
     /** Foca o item na posição após o próximo layout (antes disso a view pode não existir). */
     private fun focusPosition(rv: RecyclerView, position: Int) {
+        if (position < 0) return
         rv.scrollToPosition(position)
+        afterNextLayout(rv) {
+            (rv.layoutManager?.findViewByPosition(position) ?: rv.getChildAt(0))?.requestFocus()
+        }
+    }
+
+    /** Rola (com margem) até o item, sem mudar o foco. */
+    private fun revealPosition(rv: RecyclerView, position: Int) {
+        if (position < 0) return
+        afterNextLayout(rv) {
+            rv.layoutManager?.findViewByPosition(position)?.let { rv.revealView(it) }
+                ?: rv.smoothScrollToPosition(position)
+        }
+    }
+
+    private fun afterNextLayout(rv: RecyclerView, block: () -> Unit) {
         rv.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 rv.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                (rv.layoutManager?.findViewByPosition(position) ?: rv.getChildAt(0))?.requestFocus()
+                block()
             }
         })
         rv.requestLayout()
@@ -203,103 +331,191 @@ class MainActivity : Activity() {
 
     private fun computeSpanCount(): Int {
         val res = resources
-        val dm = res.displayMetrics
-        val available = dm.widthPixels - 2 * res.getDimensionPixelSize(R.dimen.screen_padding_h)
+        val available = res.displayMetrics.widthPixels - 2 * res.getDimensionPixelSize(R.dimen.row_padding_h)
         val cell = res.getDimensionPixelSize(R.dimen.card_width) +
             2 * res.getDimensionPixelSize(R.dimen.card_margin)
         return (available / cell).coerceIn(2, 8)
     }
 
+    // ---------------------------------------------------------------- cards
+
+    override fun onAppClick(app: AppEntry, card: View) = launch(app, card)
+
+    override fun onAppMenu(app: AppEntry) {
+        if (movingPkg == null) showAppMenu(app)
+    }
+
+    /** Modo mover: ◀ ▶ trocam de posição, OK/BACK confirmam, ▲ ▼ ficam presos no card. */
+    override fun onAppKey(app: AppEntry, keyCode: Int, event: KeyEvent): Boolean {
+        val pkg = movingPkg ?: return false
+        if (app.packageName != pkg) return false
+        val down = event.action == KeyEvent.ACTION_DOWN
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (down) moveFavorite(pkg, -1)
+            KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) moveFavorite(pkg, +1)
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> Unit
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_MENU -> if (!down) exitMoveMode()
+            else -> return false
+        }
+        return true
+    }
+
+    private fun enterMoveMode(pkg: String) {
+        val index = favoritesAdapter.indexOf(pkg)
+        if (index < 0) return
+        movingPkg = pkg
+        favoritesAdapter.setMoving(pkg)
+        content.setCollapsed(false)
+        focusPosition(favoritesView, index)
+    }
+
+    private fun exitMoveMode() {
+        if (movingPkg == null) return
+        movingPkg = null
+        favoritesAdapter.setMoving(null)
+    }
+
+    private fun moveFavorite(pkg: String, delta: Int) {
+        // Pula favoritos salvos que não estão instalados (invisíveis na fileira).
+        val visible = favoritesAdapter.currentList.mapTo(HashSet()) { it.packageName }
+        if (prefs.moveFavorite(pkg, delta, visible)) render()
+    }
+
     // ---------------------------------------------------------------- ações
 
-    private fun launch(app: AppEntry) {
-        if (!safeStart(app.launchIntent())) {
+    private fun launch(app: AppEntry, card: View) {
+        // Abre "crescendo" a partir do card: animação de janela do sistema, sem custo para nós.
+        val options = ActivityOptions.makeScaleUpAnimation(card, 0, 0, card.width, card.height).toBundle()
+        if (!safeStart(app.launchIntent(), options)) {
             // Fallback: intent de launch padrão do pacote.
             val fallback = packageManager.getLeanbackLaunchIntentForPackage(app.packageName)
                 ?: packageManager.getLaunchIntentForPackage(app.packageName)
-            if (fallback == null || !safeStart(fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))) {
+            if (fallback == null || !safeStart(fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), options)) {
                 Toast.makeText(this, R.string.launch_failed, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun safeStart(intent: Intent): Boolean = try {
-        startActivity(intent)
+    private fun safeStart(intent: Intent, options: Bundle? = null): Boolean = try {
+        startActivity(intent, options)
         true
     } catch (e: Exception) { // ActivityNotFoundException, SecurityException
         false
     }
 
-    private fun showAppMenu(app: AppEntry) {
-        val isFav = app.packageName in prefs.favorites
-        val isHidden = app.packageName in prefs.hidden
-        val actions = mutableListOf<Pair<Int, () -> Unit>>()
+    private fun openSystemSettings() {
+        safeStart(Intent(Settings.ACTION_SETTINGS))
+    }
 
-        if (isFav) {
-            actions += R.string.action_remove_favorite to { prefs.toggleFavorite(app.packageName) }
-            actions += R.string.action_move_left to { prefs.moveFavorite(app.packageName, -1) }
-            actions += R.string.action_move_right to { prefs.moveFavorite(app.packageName, +1) }
+    private fun openPanel(page: SidePanel.Page) {
+        if (!panel.isOpen) focusBeforePanel = currentFocus
+        panel.open(page)
+    }
+
+    private fun restoreFocusAfterPanel() {
+        content.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        val target = focusBeforePanel
+        focusBeforePanel = null
+        // A view do card continua ligada ao mesmo app enquanto o painel está aberto (IDs estáveis).
+        if (target == null || !target.isAttachedToWindow || !target.isShown || !target.requestFocus()) {
+            focusFirstItem()
+        }
+    }
+
+    private fun showAppMenu(app: AppEntry) {
+        val pkg = app.packageName
+        val isFav = pkg in prefs.favorites
+        val isHidden = pkg in prefs.hidden
+        val items = ArrayList<SidePanel.Item>(6)
+
+        items += if (isFav) {
+            SidePanel.Item(R.drawable.ic_star, getString(R.string.action_remove_favorite)) {
+                prefs.toggleFavorite(pkg); render()
+            }
         } else {
-            actions += R.string.action_add_favorite to { prefs.toggleFavorite(app.packageName) }
+            SidePanel.Item(R.drawable.ic_star_border, getString(R.string.action_add_favorite)) {
+                prefs.toggleFavorite(pkg); render()
+            }
         }
-        actions += (if (isHidden) R.string.action_unhide else R.string.action_hide) to {
-            prefs.toggleHidden(app.packageName)
+        if (isFav && favoritesAdapter.itemCount > 1) {
+            items += SidePanel.Item(
+                R.drawable.ic_swap, getString(R.string.action_move), getString(R.string.action_move_hint),
+            ) { enterMoveMode(pkg) }
         }
-        actions += R.string.action_app_info to {
+        items += if (isHidden) {
+            SidePanel.Item(R.drawable.ic_visibility, getString(R.string.action_unhide)) {
+                prefs.toggleHidden(pkg); render()
+            }
+        } else {
+            SidePanel.Item(R.drawable.ic_visibility_off, getString(R.string.action_hide)) {
+                prefs.toggleHidden(pkg); render()
+            }
+        }
+        items += SidePanel.Item(R.drawable.ic_info, getString(R.string.action_app_info)) {
             safeStart(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", app.packageName, null))
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
         if (!app.isSystem) {
-            actions += R.string.action_uninstall to {
+            items += SidePanel.Item(R.drawable.ic_delete, getString(R.string.action_uninstall)) {
                 @Suppress("DEPRECATION")
-                safeStart(Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.fromParts("package", app.packageName, null)))
+                safeStart(Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.fromParts("package", pkg, null)))
             }
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(app.label)
-            .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which ->
-                actions[which].second()
-                render()
-                favoritesAdapter.notifyDataSetChanged()
-                appsAdapter.notifyDataSetChanged()
-            }
-            .show()
+        openPanel(SidePanel.Page(title = app.label, subtitle = pkg, icon = app.icon, items = items))
     }
 
     private fun showLauncherOptions() {
-        fun yn(b: Boolean) = getString(if (b) R.string.on else R.string.off)
-        val items = arrayOf(
-            getString(R.string.opt_system_settings),
-            getString(R.string.opt_show_phone_apps, yn(prefs.showPhoneApps)),
-            getString(R.string.opt_show_hidden, yn(prefs.showHidden)),
-            getString(R.string.opt_redirect, yn(prefs.redirectStockLauncher)),
-            getString(R.string.opt_accessibility),
-            getString(R.string.opt_about),
-        )
-        AlertDialog.Builder(this)
-            .setTitle(R.string.launcher_options)
-            .setItems(items) { _, which ->
-                when (which) {
-                    0 -> safeStart(Intent(Settings.ACTION_SETTINGS))
-                    1 -> { prefs.showPhoneApps = !prefs.showPhoneApps; loadApps() }
-                    2 -> {
-                        prefs.showHidden = !prefs.showHidden
-                        render(); appsAdapter.notifyDataSetChanged()
-                    }
-                    3 -> prefs.redirectStockLauncher = !prefs.redirectStockLauncher
-                    4 -> if (!safeStart(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))) {
-                        Toast.makeText(this, R.string.accessibility_missing, Toast.LENGTH_LONG).show()
-                    }
-                    5 -> AlertDialog.Builder(this)
-                        .setTitle(R.string.app_name)
-                        .setMessage(R.string.about_text)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
+        val items = listOf(
+            SidePanel.Item(R.drawable.ic_settings, getString(R.string.opt_system_settings)) {
+                openSystemSettings()
+            },
+            SidePanel.Item(
+                R.drawable.ic_phone, getString(R.string.opt_show_phone_apps),
+                getString(R.string.opt_show_phone_apps_hint), checked = { prefs.showPhoneApps },
+            ) {
+                prefs.showPhoneApps = !prefs.showPhoneApps
+                loadApps()
+            },
+            SidePanel.Item(
+                R.drawable.ic_visibility, getString(R.string.opt_show_hidden), checked = { prefs.showHidden },
+            ) {
+                prefs.showHidden = !prefs.showHidden
+                render()
+            },
+            SidePanel.Item(
+                R.drawable.ic_sync, getString(R.string.opt_redirect),
+                getString(R.string.opt_redirect_hint), checked = { prefs.redirectStockLauncher },
+            ) {
+                prefs.redirectStockLauncher = !prefs.redirectStockLauncher
+            },
+            SidePanel.Item(
+                R.drawable.ic_home, getString(R.string.opt_accessibility), getString(R.string.opt_accessibility_hint),
+            ) {
+                if (!safeStart(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))) {
+                    Toast.makeText(this, R.string.accessibility_missing, Toast.LENGTH_LONG).show()
                 }
-            }
-            .show()
+            },
+            SidePanel.Item(R.drawable.ic_info, getString(R.string.opt_about), keepOpen = true) {
+                panel.push(aboutPage())
+            },
+        )
+        openPanel(SidePanel.Page(title = getString(R.string.launcher_options), items = items))
+    }
+
+    private fun aboutPage(): SidePanel.Page {
+        val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull()
+        return SidePanel.Page(
+            title = getString(R.string.app_name),
+            subtitle = version?.let { getString(R.string.opt_version, it) },
+            icon = getDrawable(R.drawable.ic_launcher),
+            body = getString(R.string.about_text),
+            items = listOf(SidePanel.Item(R.drawable.ic_chevron_left, getString(R.string.back), keepOpen = true) {
+                panel.back()
+            }),
+        )
     }
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uma única camada (radial) para não gastar fill rate com sobreposição. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:centerColor="@color/bg_mid"
+        android:centerX="0.12"
+        android:centerY="0"
+        android:endColor="@color/bg_base"
+        android:gradientRadius="1100dp"
+        android:startColor="@color/bg_glow"
+        android:type="radial" />
+</shape>

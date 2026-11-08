@@ -37,13 +37,20 @@ class Prefs(context: Context) {
         favorites = list
     }
 
-    fun moveFavorite(pkg: String, delta: Int) {
+    /**
+     * Troca [pkg] com o próximo favorito na direção [delta] que esteja em [visible] (os salvos mas
+     * não instalados são pulados). Retorna false se já estava na ponta.
+     */
+    fun moveFavorite(pkg: String, delta: Int, visible: Set<String>): Boolean {
         val list = favorites.toMutableList()
         val i = list.indexOf(pkg)
-        val j = i + delta
-        if (i < 0 || j !in list.indices) return
+        if (i < 0) return false
+        var j = i + delta
+        while (j in list.indices && list[j] !in visible) j += delta
+        if (j !in list.indices) return false
         list[i] = list[j].also { list[j] = list[i] }
         favorites = list
+        return true
     }
 
     fun toggleHidden(pkg: String) {

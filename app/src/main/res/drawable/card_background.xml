@@ -1,16 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true">
-        <shape>
-            <solid android:color="@color/card_bg_focused" />
-            <corners android:radius="@dimen/card_radius" />
-            <stroke android:width="3dp" android:color="@color/accent" />
-        </shape>
-    </item>
-    <item>
-        <shape>
-            <solid android:color="@color/card_bg" />
-            <corners android:radius="@dimen/card_radius" />
-        </shape>
-    </item>
-</selector>
+<!-- Fundo do card. Também define o outline usado para recortar o banner com cantos arredondados. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/card_bg" />
+    <corners android:radius="@dimen/card_radius" />
+</shape>

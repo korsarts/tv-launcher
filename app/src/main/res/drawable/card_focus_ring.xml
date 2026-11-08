@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground do card: anel de foco com fade (anima só o drawable, sem relayout). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="140"
+    android:exitFadeDuration="120">
+    <item android:state_activated="true">
+        <shape>
+            <corners android:radius="@dimen/card_radius" />
+            <stroke android:width="@dimen/focus_ring_width" android:color="@color/accent" />
+        </shape>
+    </item>
+    <item android:state_focused="true">
+        <shape>
+            <corners android:radius="@dimen/card_radius" />
+            <stroke android:width="@dimen/focus_ring_width" android:color="@color/focus_ring" />
+        </shape>
+    </item>
+    <item android:drawable="@android:color/transparent" />
+</selector>

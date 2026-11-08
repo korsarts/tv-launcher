@@ -7,13 +7,14 @@
     android:focusable="true"
     android:orientation="vertical">
 
+    <!-- clipToOutline (ligado no código) recorta o banner nos cantos arredondados. -->
     <FrameLayout
         android:id="@+id/card"
         android:layout_width="@dimen/card_width"
         android:layout_height="@dimen/card_height"
         android:background="@drawable/card_background"
         android:duplicateParentState="true"
-        android:padding="3dp">
+        android:foreground="@drawable/card_focus_ring">
 
         <!-- Banner 16:9 (apps de TV) -->
         <ImageView
@@ -30,23 +31,55 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:orientation="vertical"
-            android:padding="4dp">
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
 
             <ImageView
                 android:id="@+id/icon"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:importantForAccessibility="no" />
 
             <TextView
                 android:id="@+id/icon_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="6dp"
                 android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
                 android:textColor="@color/text_primary"
                 android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Modo mover (reordenar favoritos) -->
+        <LinearLayout
+            android:id="@+id/move_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/move_overlay"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_chevron_left" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_chevron_right" />
         </LinearLayout>
     </FrameLayout>
 
@@ -54,11 +87,12 @@
         android:id="@+id/label"
         android:layout_width="@dimen/card_width"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="8dp"
+        android:alpha="0"
         android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
         android:gravity="center_horizontal"
         android:maxLines="1"
         android:textColor="@color/text_primary"
-        android:textSize="12sp"
-        android:visibility="invisible" />
+        android:textSize="13sp" />
 </LinearLayout>

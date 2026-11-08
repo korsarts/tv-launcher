@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="140"
+    android:exitFadeDuration="120">
     <item android:state_focused="true">
         <shape android:shape="oval">
-            <solid android:color="@color/card_bg_focused" />
-            <stroke android:width="3dp" android:color="@color/accent" />
+            <solid android:color="@color/focus_fill" />
         </shape>
     </item>
     <item>
         <shape android:shape="oval">
-            <solid android:color="#00000000" />
+            <solid android:color="@color/surface_soft" />
         </shape>
     </item>
 </selector>

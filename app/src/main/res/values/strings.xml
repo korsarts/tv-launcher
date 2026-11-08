@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TV Launcher</string>
+    <string name="date_format">EEEE, d \'de\' MMMM</string>
     <string name="favorites">Favoritos</string>
     <string name="all_apps">Aplicativos</string>
     <string name="settings">Configurações</string>
@@ -9,21 +10,24 @@
 
     <string name="action_add_favorite">Adicionar aos favoritos</string>
     <string name="action_remove_favorite">Remover dos favoritos</string>
-    <string name="action_move_left">Mover para a esquerda</string>
-    <string name="action_move_right">Mover para a direita</string>
+    <string name="action_move">Mover</string>
+    <string name="action_move_hint">Use ◀ ▶ e confirme com OK</string>
     <string name="action_hide">Ocultar app</string>
     <string name="action_unhide">Mostrar app</string>
     <string name="action_app_info">Informações do app</string>
     <string name="action_uninstall">Desinstalar</string>
 
     <string name="opt_system_settings">Configurações do sistema</string>
-    <string name="opt_show_phone_apps">Mostrar apps de celular: %1$s</string>
-    <string name="opt_show_hidden">Mostrar apps ocultos: %1$s</string>
-    <string name="opt_redirect">Substituir launcher original: %1$s</string>
-    <string name="opt_accessibility">Ativar botão HOME (Acessibilidade)</string>
+    <string name="opt_show_phone_apps">Mostrar apps de celular</string>
+    <string name="opt_show_phone_apps_hint">Apps sem versão para TV</string>
+    <string name="opt_show_hidden">Mostrar apps ocultos</string>
+    <string name="opt_redirect">Substituir launcher original</string>
+    <string name="opt_redirect_hint">Requer o serviço de acessibilidade</string>
+    <string name="opt_accessibility">Ativar botão HOME</string>
+    <string name="opt_accessibility_hint">Configurações de acessibilidade</string>
     <string name="opt_about">Sobre / como definir como padrão</string>
-    <string name="on">sim</string>
-    <string name="off">não</string>
+    <string name="back">Voltar</string>
+    <string name="opt_version">Versão %1$s</string>
 
     <string name="about_text">Para o botão HOME abrir este launcher no Mi TV Stick:\n\n1) Sem PC: Opções do launcher → Ativar botão HOME → selecione \"TV Launcher – botão HOME\" e ative.\n\n2) Via ADB (definitivo):\nadb shell pm disable-user --user 0 com.google.android.tvlauncher\n\nPara reverter:\nadb shell pm enable com.google.android.tvlauncher</string>
     <string name="launch_failed">Não foi possível abrir o app</string>

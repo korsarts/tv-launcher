@@ -1,112 +1,231 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:clipChildren="false"
-    android:clipToPadding="false"
-    android:orientation="vertical"
-    android:paddingStart="@dimen/screen_padding_h"
-    android:paddingTop="@dimen/screen_padding_v"
-    android:paddingEnd="@dimen/screen_padding_h">
+    android:layout_height="match_parent">
 
-    <!-- Barra superior: relógio/data + botões -->
-    <LinearLayout
+    <!-- Cabeçalho (relógio + favoritos) e grade. O cabeçalho recolhe (translationY) quando o
+         foco desce na grade: só transformação, sem relayout. -->
+    <com.korsarts.tvlauncher.CollapsingLayout
+        android:id="@+id/content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/card_margin"
-        android:layout_marginEnd="@dimen/card_margin"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:paddingTop="@dimen/screen_padding_v">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/header"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:clipChildren="false"
             android:orientation="vertical">
 
-            <TextClock
-                android:id="@+id/clock"
-                android:layout_width="wrap_content"
+            <!-- Barra superior: relógio/data + botões -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-light"
-                android:format12Hour="h:mm"
-                android:format24Hour="HH:mm"
-                android:includeFontPadding="false"
-                android:textColor="@color/text_primary"
-                android:textSize="44sp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/screen_padding_h"
+                android:paddingEnd="@dimen/screen_padding_h">
 
-            <TextClock
-                android:id="@+id/date"
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextClock
+                        android:id="@+id/clock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-light"
+                        android:format12Hour="h:mm"
+                        android:format24Hour="HH:mm"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="-0.02"
+                        android:textColor="@color/text_primary"
+                        android:textSize="48sp" />
+
+                    <TextClock
+                        android:id="@+id/date"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:format12Hour="@string/date_format"
+                        android:format24Hour="@string/date_format"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_options"
+                    style="@style/TopButton"
+                    android:layout_marginEnd="12dp"
+                    android:contentDescription="@string/launcher_options"
+                    android:src="@drawable/ic_tune" />
+
+                <ImageButton
+                    android:id="@+id/btn_settings"
+                    style="@style/TopButton"
+                    android:contentDescription="@string/settings"
+                    android:src="@drawable/ic_settings" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/SectionTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:format12Hour="EEEE, d MMMM"
-                android:format24Hour="EEEE, d MMMM"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp" />
+                android:layout_marginTop="18dp"
+                android:text="@string/favorites" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/favorites"
+                style="@style/AppRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/favorites_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_padding_h"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="@dimen/screen_padding_h"
+                android:layout_marginBottom="16dp"
+                android:text="@string/no_favorites"
+                android:textColor="@color/text_tertiary"
+                android:textSize="14sp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/btn_options"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/button_background"
-            android:contentDescription="@string/launcher_options"
-            android:focusable="true"
-            android:src="@drawable/ic_tune" />
+        <LinearLayout
+            android:id="@+id/apps_section"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/btn_settings"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:background="@drawable/button_background"
-            android:contentDescription="@string/settings"
-            android:focusable="true"
-            android:src="@drawable/ic_settings" />
-    </LinearLayout>
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/all_apps" />
 
-    <TextView
-        style="@style/SectionTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/favorites" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/apps"
+                style="@style/AppRow"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </com.korsarts.tvlauncher.CollapsingLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/favorites"
+    <!-- Painel lateral (menus). Fica GONE quando fechado: zero custo de desenho. -->
+    <FrameLayout
+        android:id="@+id/panel_overlay"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:descendantFocusability="afterDescendants"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp" />
+        android:layout_height="match_parent"
+        android:visibility="gone">
 
-    <TextView
-        android:id="@+id/favorites_empty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/card_margin"
-        android:layout_marginBottom="8dp"
-        android:text="@string/no_favorites"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        android:visibility="gone" />
+        <View
+            android:id="@+id/panel_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/scrim"
+            android:forceHasOverlappingRendering="false" />
 
-    <TextView
-        style="@style/SectionTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/all_apps" />
+        <LinearLayout
+            android:id="@+id/panel"
+            android:layout_width="@dimen/panel_width"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:background="@drawable/panel_background"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="32dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="24dp">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/apps"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:descendantFocusability="afterDescendants"
-        android:paddingTop="6dp"
-        android:paddingBottom="@dimen/screen_padding_v" />
-</LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+
+                <ImageView
+                    android:id="@+id/panel_icon"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="14dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/panel_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
+                        android:maxLines="2"
+                        android:textColor="@color/text_primary"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:id="@+id/panel_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <ScrollView
+                android:id="@+id/panel_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="20dp"
+                android:layout_weight="1"
+                android:fadingEdge="none"
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/panel_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:lineSpacingExtra="3dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:textColor="@color/text_secondary"
+                        android:textIsSelectable="false"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/panel_items"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>
