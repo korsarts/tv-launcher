@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mi TV Stick: 1920x1080 @ xhdpi = 960x540dp -->
+    <dimen name="screen_padding_h">48dp</dimen>
+    <dimen name="screen_padding_v">27dp</dimen>
+    <dimen name="card_width">156dp</dimen>
+    <dimen name="card_height">88dp</dimen>
+    <dimen name="card_margin">8dp</dimen>
+    <dimen name="card_radius">8dp</dimen>
+</resources>
