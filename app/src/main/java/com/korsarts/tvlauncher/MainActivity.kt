@@ -37,6 +37,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
     private lateinit var favoritesAdapter: AppAdapter
     private lateinit var appsAdapter: AppAdapter
     private lateinit var panel: SidePanel
+    private lateinit var weather: WeatherRepository
+    private lateinit var weatherWidget: WeatherWidget
     private var spanCount = 1
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -57,6 +59,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     /** Onde o foco estava quando o painel abriu, para devolvê-lo ao fechar. */
     private var focusBeforePanel: View? = null
+
+    /** Última previsão exibida (do cache ou da rede). */
+    private var weatherData: WeatherData? = null
+    private val weatherTick = Runnable { refreshWeather() }
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -114,6 +120,18 @@ class MainActivity : Activity(), AppAdapter.Listener {
             onClosed = ::restoreFocusAfterPanel,
         )
 
+        weather = WeatherRepository(this, prefs)
+        weatherWidget = WeatherWidget(findViewById(R.id.widget_area))
+        weatherWidget.root.visibility = if (prefs.weatherEnabled) View.VISIBLE else View.GONE
+        weather.loadCached { cached ->
+            if (cached != null && weatherData == null) {
+                weatherData = cached
+                weatherWidget.show(cached)
+            } else if (cached == null && weatherData == null) {
+                weatherWidget.showLoading()
+            }
+        }
+
         findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
 
@@ -138,15 +156,19 @@ class MainActivity : Activity(), AppAdapter.Listener {
             reloadPending = false
             loadApps()
         }
+        resumeWeather()
     }
 
     override fun onPause() {
         resumed = false
+        main.removeCallbacks(weatherTick)
         super.onPause()
     }
 
     override fun onDestroy() {
         unregisterReceiver(packageReceiver)
+        main.removeCallbacks(weatherTick)
+        weather.shutdown()
         executor.shutdownNow()
         super.onDestroy()
     }
@@ -265,6 +287,64 @@ class MainActivity : Activity(), AppAdapter.Listener {
             }
         }
         return null
+    }
+
+    // ---------------------------------------------------------------- clima
+
+    /** Ao voltar para o launcher: busca se o dado venceu; senão só reagenda e redesenha. */
+    private fun resumeWeather() {
+        if (!prefs.weatherEnabled) return
+        val data = weatherData
+        val age = if (data == null) Long.MAX_VALUE else System.currentTimeMillis() - data.fetchedAt
+        if (age >= WEATHER_REFRESH_MS || age < 0) {
+            refreshWeather()
+        } else {
+            weatherWidget.show(data!!) // as "próximas horas" andam mesmo sem buscar de novo
+            scheduleWeather(WEATHER_REFRESH_MS - age)
+        }
+    }
+
+    private fun refreshWeather() {
+        main.removeCallbacks(weatherTick)
+        if (!prefs.weatherEnabled) return
+        if (weatherData == null) weatherWidget.showLoading()
+        weather.refresh { result ->
+            when (result) {
+                is WeatherRepository.Result.Success -> {
+                    weatherData = result.data
+                    weatherWidget.show(result.data)
+                    scheduleWeather(WEATHER_REFRESH_MS)
+                }
+                is WeatherRepository.Result.Failure -> {
+                    val cached = weatherData
+                    when {
+                        cached != null -> weatherWidget.show(cached)
+                        result.noLocation -> weatherWidget.showMessage(R.string.weather_no_location)
+                        else -> weatherWidget.showMessage(R.string.weather_unavailable)
+                    }
+                    scheduleWeather(WEATHER_RETRY_MS)
+                }
+            }
+        }
+    }
+
+    /** Só agenda com o launcher em primeiro plano; o onResume retoma. */
+    private fun scheduleWeather(delayMs: Long) {
+        main.removeCallbacks(weatherTick)
+        if (resumed && prefs.weatherEnabled) main.postDelayed(weatherTick, delayMs)
+    }
+
+    private fun setWeatherEnabled(enabled: Boolean) {
+        prefs.weatherEnabled = enabled
+        weatherWidget.root.visibility = if (enabled) View.VISIBLE else View.GONE
+        if (enabled) resumeWeather() else main.removeCallbacks(weatherTick)
+    }
+
+    private fun setWeatherLocation(location: WeatherLocation?) {
+        prefs.weatherManualLocation = location
+        weather.clearCache()
+        weatherData = null
+        refreshWeather()
     }
 
     // ---------------------------------------------------------------- foco
@@ -531,11 +611,84 @@ class MainActivity : Activity(), AppAdapter.Listener {
                     Toast.makeText(this, R.string.accessibility_missing, Toast.LENGTH_LONG).show()
                 }
             },
+            SidePanel.Item(
+                R.drawable.ic_weather, getString(R.string.opt_weather), getString(R.string.opt_weather_hint),
+                keepOpen = true,
+            ) {
+                panel.push(weatherPage())
+            },
             SidePanel.Item(R.drawable.ic_info, getString(R.string.opt_about), keepOpen = true) {
                 panel.push(aboutPage())
             },
         )
         openPanel(SidePanel.Page(title = getString(R.string.launcher_options), items = items))
+    }
+
+    private fun backItem() = SidePanel.Item(R.drawable.ic_chevron_left, getString(R.string.back), keepOpen = true) {
+        panel.back()
+    }
+
+    private fun weatherPage(): SidePanel.Page {
+        val manual = prefs.weatherManualLocation
+        val autoName = weatherData?.place ?: weather.autoPlaceName
+        val cityHint = when {
+            manual != null -> getString(R.string.opt_weather_city_manual, manual.name)
+            autoName != null -> getString(R.string.opt_weather_city_auto, autoName)
+            else -> getString(R.string.opt_weather_city_auto_unknown)
+        }
+        val items = ArrayList<SidePanel.Item>(5)
+        items += SidePanel.Item(
+            R.drawable.ic_weather, getString(R.string.opt_weather_show), checked = { prefs.weatherEnabled },
+        ) {
+            setWeatherEnabled(!prefs.weatherEnabled)
+        }
+        items += SidePanel.Item(R.drawable.ic_search, getString(R.string.opt_weather_city), cityHint, keepOpen = true) {
+            panel.push(citySearchPage())
+        }
+        if (manual != null) {
+            items += SidePanel.Item(
+                R.drawable.ic_location, getString(R.string.opt_weather_auto), getString(R.string.opt_weather_auto_hint),
+            ) {
+                setWeatherLocation(null)
+            }
+        }
+        items += SidePanel.Item(R.drawable.ic_sync, getString(R.string.opt_weather_refresh)) {
+            if (!prefs.weatherEnabled) setWeatherEnabled(true) else refreshWeather()
+        }
+        items += backItem()
+        return SidePanel.Page(title = getString(R.string.opt_weather), items = items)
+    }
+
+    private fun citySearchPage(): SidePanel.Page {
+        lateinit var page: SidePanel.Page
+        val input = SidePanel.Input(getString(R.string.weather_search_hint)) { query ->
+            panel.setBody(page, getString(R.string.weather_searching))
+            weather.searchCity(query) { results ->
+                if (panel.currentPage !== page) return@searchCity // usuário saiu da página
+                when {
+                    results == null -> panel.setBody(page, getString(R.string.weather_search_failed))
+                    results.isEmpty() -> panel.setBody(page, getString(R.string.weather_search_empty))
+                    else -> {
+                        panel.setBody(page, getString(R.string.weather_search_body))
+                        panel.push(cityResultsPage(query, results))
+                    }
+                }
+            }
+        }
+        page = SidePanel.Page(
+            title = getString(R.string.weather_search_title),
+            body = getString(R.string.weather_search_body),
+            input = input,
+            items = listOf(backItem()),
+        )
+        return page
+    }
+
+    private fun cityResultsPage(query: String, results: List<WeatherLocation>): SidePanel.Page {
+        val items = results.map { loc ->
+            SidePanel.Item(R.drawable.ic_location, loc.name, loc.region) { setWeatherLocation(loc) }
+        } + backItem()
+        return SidePanel.Page(title = getString(R.string.weather_results_title), subtitle = query, items = items)
     }
 
     private fun aboutPage(): SidePanel.Page {
@@ -545,9 +698,12 @@ class MainActivity : Activity(), AppAdapter.Listener {
             subtitle = version?.let { getString(R.string.opt_version, it) },
             icon = getDrawable(R.drawable.ic_launcher),
             body = getString(R.string.about_text),
-            items = listOf(SidePanel.Item(R.drawable.ic_chevron_left, getString(R.string.back), keepOpen = true) {
-                panel.back()
-            }),
+            items = listOf(backItem()),
         )
+    }
+
+    private companion object {
+        const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
+        const val WEATHER_RETRY_MS = 5 * 60 * 1000L
     }
 }

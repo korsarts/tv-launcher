@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -68,7 +69,7 @@
                     android:src="@drawable/ic_settings" />
             </LinearLayout>
 
-            <!-- Reservado para widgets (próxima versão). -->
+            <!-- Área de widgets (clima). O conteúdo é inflado pelo WeatherWidget. -->
             <FrameLayout
                 android:id="@+id/widget_area"
                 android:layout_width="match_parent"
@@ -228,6 +229,28 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
+
+                    <!-- Campo de texto opcional da página (ex.: busca de cidade). O hint, que
+                         serve de rótulo de acessibilidade, vem da página (SidePanel.Input). -->
+                    <EditText
+                        android:id="@+id/panel_input"
+                        tools:ignore="LabelFor"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/panel_input_background"
+                        android:imeOptions="actionSearch|flagNoExtractUi"
+                        android:importantForAutofill="no"
+                        android:inputType="textCapWords|textNoSuggestions"
+                        android:maxLines="1"
+                        android:minHeight="54dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_tertiary"
+                        android:textCursorDrawable="@null"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/panel_body"

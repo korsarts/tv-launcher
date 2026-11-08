@@ -34,6 +34,54 @@
     <string name="launch_failed">Não foi possível abrir o app</string>
     <string name="accessibility_missing">Tela de acessibilidade indisponível neste aparelho</string>
 
+    <!-- Clima -->
+    <string name="weather_temp">%1$d°</string>
+    <string name="weather_feels">Sensação %1$d° · Mín %2$d° · Máx %3$d°</string>
+    <string name="weather_feels_only">Sensação %1$d°</string>
+    <string name="weather_details">Umidade %1$d%% · Vento %2$d km/h</string>
+    <string name="weather_updated">Atualizado às %1$s</string>
+    <string name="weather_precip">%1$d%%</string>
+    <string name="weather_loading">Carregando previsão do tempo…</string>
+    <string name="weather_unavailable">Previsão do tempo indisponível. Verifique a conexão.</string>
+    <string name="weather_no_location">Não foi possível detectar a localização. Defina a cidade em Opções → Clima.</string>
+
+    <string name="opt_weather">Clima</string>
+    <string name="opt_weather_hint">Widget, cidade e atualização</string>
+    <string name="opt_weather_show">Mostrar widget de clima</string>
+    <string name="opt_weather_city">Escolher cidade</string>
+    <string name="opt_weather_city_auto">Atual: %1$s (automática)</string>
+    <string name="opt_weather_city_auto_unknown">Atual: automática pelo IP</string>
+    <string name="opt_weather_city_manual">Atual: %1$s</string>
+    <string name="opt_weather_auto">Usar localização automática</string>
+    <string name="opt_weather_auto_hint">Detecta a cidade pelo IP da conexão</string>
+    <string name="opt_weather_refresh">Atualizar agora</string>
+    <string name="weather_search_title">Escolher cidade</string>
+    <string name="weather_search_hint">Nome da cidade</string>
+    <string name="weather_search_body">Selecione o campo, digite o nome da cidade e confirme no teclado.</string>
+    <string name="weather_searching">Buscando…</string>
+    <string name="weather_search_failed">Falha na busca. Verifique a conexão.</string>
+    <string name="weather_search_empty">Nenhuma cidade encontrada.</string>
+    <string name="weather_results_title">Resultados</string>
+
+    <string name="wmo_clear">Céu limpo</string>
+    <string name="wmo_mainly_clear">Predomínio de sol</string>
+    <string name="wmo_partly_cloudy">Parcialmente nublado</string>
+    <string name="wmo_overcast">Nublado</string>
+    <string name="wmo_fog">Neblina</string>
+    <string name="wmo_drizzle">Garoa</string>
+    <string name="wmo_freezing_drizzle">Garoa congelante</string>
+    <string name="wmo_rain_light">Chuva fraca</string>
+    <string name="wmo_rain">Chuva</string>
+    <string name="wmo_rain_heavy">Chuva forte</string>
+    <string name="wmo_freezing_rain">Chuva congelante</string>
+    <string name="wmo_snow">Neve</string>
+    <string name="wmo_showers">Pancadas de chuva</string>
+    <string name="wmo_showers_heavy">Pancadas de chuva fortes</string>
+    <string name="wmo_snow_showers">Pancadas de neve</string>
+    <string name="wmo_thunderstorm">Tempestade</string>
+    <string name="wmo_thunderstorm_hail">Tempestade com granizo</string>
+    <string name="wmo_unknown">—</string>
+
     <string name="accessibility_label">TV Launcher – botão HOME</string>
     <string name="accessibility_description">Faz o botão HOME do controle abrir o TV Launcher em vez do launcher original. Não lê o conteúdo da tela.</string>
 </resources>

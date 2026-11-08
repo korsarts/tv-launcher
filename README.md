@@ -3,15 +3,34 @@
 Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick (MDZ-24-AA)**
 (Android TV 9, 1 GB de RAM), mas funciona em qualquer Android TV com API 21 ou superior.
 
-- APK de ~180 KB, sem Leanback/Compose/AppCompat: só `Activity` + `RecyclerView`
-- Relógio e data, linha de **Favoritos** (ordenável) e grade de **todos os apps**
+- APK de ~240 KB, sem Leanback/Compose/AppCompat: só `Activity` + `RecyclerView`
+- Relógio e data, **widget de clima**, linha de **Favoritos** (ordenável) e grade de **todos os apps**
 - Usa o banner 16:9 dos apps de TV; apps de celular (sideload) aparecem com ícone e nome
 - Menu lateral do app (segure OK ou aperte MENU): favoritar, mover (◀ ▶ e OK para confirmar), ocultar, informações, desinstalar
-- Tela inicial com favoritos na parte de baixo (área de cima reservada para widgets); ▼ nos
-  favoritos desliza para a grade em tela cheia, ▲ na primeira linha volta
+- Tela inicial com o clima em cima e os favoritos embaixo; ▼ nos favoritos desliza para a grade
+  em tela cheia, ▲ na primeira linha volta
 - Foco sem contorno: o card focado cresce e acende, os demais ficam levemente esmaecidos
 - Atualiza sozinho quando um app é instalado ou removido
 - Serviço de acessibilidade **opcional** para o botão HOME abrir este launcher sem root
+
+## Widget de clima
+
+Mostra o tempo agora (temperatura, condição, sensação térmica, mínima/máxima do dia, umidade e
+vento) e, à direita, 5 colunas: na linha de cima as próximas 5 horas, na de baixo os próximos 5
+dias, com a chance de chuva quando houver.
+
+- **Localização:** automática pela geolocalização do IP. Se cair na cidade errada (comum quando o
+  provedor roteia por outra cidade), use **Opções do launcher → Clima → Escolher cidade**: selecione
+  o campo, digite com o teclado da TV, confirme e escolha na lista. *Usar localização automática*
+  volta ao modo por IP.
+- **Atualização:** a cada 30 min enquanto o launcher está na tela (5 min após uma falha). A última
+  previsão fica salva e aparece na hora ao ligar a TV, mesmo sem rede.
+- **Desligar:** *Opções do launcher → Clima → Mostrar widget de clima*.
+- **Privacidade / serviços usados** (todos HTTPS, sem conta nem chave):
+  - [Open-Meteo](https://open-meteo.com) para a previsão e a busca de cidades (recebe só as
+    coordenadas ou o nome buscado);
+  - [ipwho.is](https://ipwho.is) com fallback para [ipapi.co](https://ipapi.co), **apenas no modo
+    automático**, para descobrir a cidade pelo IP (consulta no máximo a cada 12 h).
 
 ## Instalação no Mi TV Stick
 

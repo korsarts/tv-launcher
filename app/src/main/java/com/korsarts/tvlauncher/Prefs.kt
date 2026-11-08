@@ -31,6 +31,32 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_REDIRECT, true)
         set(value) = sp.edit().putBoolean(KEY_REDIRECT, value).apply()
 
+    var weatherEnabled: Boolean
+        get() = sp.getBoolean(KEY_WEATHER_ENABLED, true)
+        set(value) = sp.edit().putBoolean(KEY_WEATHER_ENABLED, value).apply()
+
+    /** Cidade escolhida na busca; null = localização automática pelo IP. */
+    var weatherManualLocation: WeatherLocation?
+        get() {
+            val name = sp.getString(KEY_WEATHER_NAME, null) ?: return null
+            val lat = sp.getString(KEY_WEATHER_LAT, null)?.toDoubleOrNull() ?: return null
+            val lon = sp.getString(KEY_WEATHER_LON, null)?.toDoubleOrNull() ?: return null
+            return WeatherLocation(name, lat, lon, sp.getString(KEY_WEATHER_REGION, null))
+        }
+        set(value) {
+            val e = sp.edit()
+            if (value == null) {
+                e.remove(KEY_WEATHER_NAME).remove(KEY_WEATHER_REGION).remove(KEY_WEATHER_LAT).remove(KEY_WEATHER_LON)
+            } else {
+                // Double.toString usa sempre ponto decimal: leitura independe do idioma.
+                e.putString(KEY_WEATHER_NAME, value.name)
+                    .putString(KEY_WEATHER_REGION, value.region)
+                    .putString(KEY_WEATHER_LAT, value.lat.toString())
+                    .putString(KEY_WEATHER_LON, value.lon.toString())
+            }
+            e.apply()
+        }
+
     fun toggleFavorite(pkg: String) {
         val list = favorites.toMutableList()
         if (!list.remove(pkg)) list.add(pkg)
@@ -65,6 +91,11 @@ class Prefs(context: Context) {
         private const val KEY_PHONE_APPS = "show_phone_apps"
         private const val KEY_SHOW_HIDDEN = "show_hidden"
         private const val KEY_REDIRECT = "redirect_stock"
+        private const val KEY_WEATHER_ENABLED = "weather_enabled"
+        private const val KEY_WEATHER_NAME = "weather_name"
+        private const val KEY_WEATHER_REGION = "weather_region"
+        private const val KEY_WEATHER_LAT = "weather_lat"
+        private const val KEY_WEATHER_LON = "weather_lon"
 
         /** Favoritos iniciais (só aparecem se instalados). */
         private val DEFAULT_FAVORITES = listOf(
