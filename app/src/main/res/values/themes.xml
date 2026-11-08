@@ -3,23 +3,22 @@
     <style name="Theme.TvLauncher" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@drawable/bg_window</item>
         <item name="android:colorAccent">@color/accent</item>
-        <item name="android:colorPrimary">@color/bg_mid</item>
+        <item name="android:colorPrimary">@color/bg_base</item>
         <item name="android:windowShowWallpaper">false</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
     <style name="SectionTitle">
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">15sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:letterSpacing">0.08</item>
-        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.01</item>
         <item name="android:layout_marginStart">@dimen/screen_padding_h</item>
         <item name="android:layout_marginEnd">@dimen/screen_padding_h</item>
     </style>
 
     <!-- Fileira/grade de cards: sangra até a borda da tela (padding horizontal com
-         clipToPadding=false), mas recorta no limite vertical do próprio RecyclerView. -->
+         clipToPadding=false), mas recorta no limite do próprio RecyclerView. -->
     <style name="AppRow">
         <item name="android:clipToPadding">false</item>
         <item name="android:descendantFocusability">afterDescendants</item>
@@ -32,11 +31,11 @@
     </style>
 
     <style name="TopButton">
-        <item name="android:layout_width">48dp</item>
-        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_width">@dimen/top_button_size</item>
+        <item name="android:layout_height">@dimen/top_button_size</item>
         <item name="android:background">@drawable/button_background</item>
         <item name="android:focusable">true</item>
         <item name="android:scaleType">center</item>
-        <item name="android:tint">@color/on_surface_tint</item>
+        <item name="android:tint">@color/top_button_tint</item>
     </style>
 </resources>

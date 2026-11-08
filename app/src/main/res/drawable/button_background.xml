@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Botões do topo: invisíveis em repouso, círculo claro quando focados (ícone fica escuro). -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android"
     android:enterFadeDuration="140"
     android:exitFadeDuration="120">
@@ -7,9 +8,5 @@
             <solid android:color="@color/focus_fill" />
         </shape>
     </item>
-    <item>
-        <shape android:shape="oval">
-            <solid android:color="@color/surface_soft" />
-        </shape>
-    </item>
+    <item android:drawable="@android:color/transparent" />
 </selector>

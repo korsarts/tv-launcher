@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ícones/texto sobre superfície que fica clara quando focada. -->
+<!-- Texto/ícone sobre superfície que fica clara quando focada: escuro no foco, claro em repouso. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:color="@color/on_focus" android:state_focused="true" />
     <item android:color="@color/text_primary" />

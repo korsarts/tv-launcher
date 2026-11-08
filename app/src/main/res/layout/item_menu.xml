@@ -7,11 +7,11 @@
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
-    android:minHeight="52dp"
+    android:minHeight="54dp"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
+    android:paddingStart="16dp"
     android:paddingTop="8dp"
-    android:paddingEnd="14dp"
+    android:paddingEnd="16dp"
     android:paddingBottom="8dp">
 
     <ImageView
@@ -23,10 +23,13 @@
         android:importantForAccessibility="no"
         android:tint="@color/on_surface_tint" />
 
+    <!-- duplicateParentState aqui também: sem ele os textos herdariam o estado deste
+         LinearLayout (nunca focado) e ficariam claros sobre o fundo claro da linha focada. -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:duplicateParentState="true"
         android:orientation="vertical">
 
         <TextView
@@ -54,5 +57,6 @@
         android:layout_height="22dp"
         android:layout_marginStart="12dp"
         android:background="@drawable/toggle"
+        android:duplicateParentState="true"
         android:visibility="gone" />
 </LinearLayout>

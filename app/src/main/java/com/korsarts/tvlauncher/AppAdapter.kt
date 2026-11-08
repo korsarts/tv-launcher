@@ -20,8 +20,11 @@ class AppAdapter(
         fun onAppClick(app: AppEntry, card: View)
         fun onAppMenu(app: AppEntry)
 
-        /** Chamado antes do tratamento padrão de teclas do card (ex.: modo mover). true = consumida. */
-        fun onAppKey(app: AppEntry, keyCode: Int, event: KeyEvent): Boolean
+        /**
+         * Chamado antes do tratamento padrão de teclas do card (modo mover, troca de página).
+         * [adapter]/[position] identificam de qual lista veio a tecla. true = consumida.
+         */
+        fun onAppKey(adapter: AppAdapter, position: Int, app: AppEntry, keyCode: Int, event: KeyEvent): Boolean
     }
 
     /** Pacotes ocultos (exibidos esmaecidos quando "mostrar ocultos" está ativo). */
@@ -84,6 +87,12 @@ class AppAdapter(
         init {
             // Recorta o banner no outline arredondado do fundo (barato em HWUI: round rect).
             card.clipToOutline = true
+            // O zoom é aplicado no item inteiro, com pivô no centro do card. Escalar só o card
+            // (filho do item) fazia ele passar dos limites do item, e o RecyclerView recorta
+            // cada item nos próprios limites: as bordas do card focado saíam cortadas.
+            val res = view.resources
+            view.pivotX = res.getDimensionPixelSize(R.dimen.card_width) / 2f
+            view.pivotY = res.getDimensionPixelSize(R.dimen.card_height) / 2f
             // Listeners criados uma vez por ViewHolder, não a cada bind.
             view.setOnClickListener(this)
             view.setOnLongClickListener(this)
@@ -130,25 +139,26 @@ class AppAdapter(
             app = null
             banner.setImageDrawable(null)
             icon.setImageDrawable(null)
-            card.animate().cancel()
+            itemView.animate().cancel()
             label.animate().cancel()
         }
 
         private fun applyFocus(focused: Boolean, animate: Boolean) {
             val scale = if (focused) Motion.FOCUS_SCALE else 1f
             val labelAlpha = if (focused) 1f else 0f
-            // Só ordena o desenho (card focado por cima dos vizinhos); sem outline visível, sem sombra.
+            // Só ordena o desenho (item focado por cima dos vizinhos). O item não tem fundo,
+            // então não há outline nem sombra.
             itemView.translationZ = if (focused) 1f else 0f
             if (animate) {
-                card.animate().scaleX(scale).scaleY(scale)
+                itemView.animate().scaleX(scale).scaleY(scale)
                     .setDuration(Motion.FOCUS_MS).setInterpolator(Motion.STANDARD).start()
                 label.animate().alpha(labelAlpha)
                     .setDuration(Motion.FOCUS_MS).setInterpolator(Motion.STANDARD).start()
             } else {
-                card.animate().cancel()
+                itemView.animate().cancel()
                 label.animate().cancel()
-                card.scaleX = scale
-                card.scaleY = scale
+                itemView.scaleX = scale
+                itemView.scaleY = scale
                 label.alpha = labelAlpha
             }
         }
@@ -166,7 +176,7 @@ class AppAdapter(
 
         override fun onKey(v: View, keyCode: Int, event: KeyEvent): Boolean {
             val app = app ?: return false
-            if (listener.onAppKey(app, keyCode, event)) return true
+            if (listener.onAppKey(this@AppAdapter, bindingAdapterPosition, app, keyCode, event)) return true
             when (keyCode) {
                 KeyEvent.KEYCODE_MENU -> {
                     if (event.action == KeyEvent.ACTION_UP) listener.onAppMenu(app)
@@ -175,10 +185,10 @@ class AppAdapter(
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                     // Feedback de "aperto"; o clique/long-press padrão continua acontecendo.
                     if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                        card.animate().scaleX(Motion.PRESS_SCALE).scaleY(Motion.PRESS_SCALE)
+                        itemView.animate().scaleX(Motion.PRESS_SCALE).scaleY(Motion.PRESS_SCALE)
                             .setDuration(Motion.PRESS_MS).setInterpolator(Motion.STANDARD).start()
                     } else if (event.action == KeyEvent.ACTION_UP && v.hasFocus()) {
-                        card.animate().scaleX(Motion.FOCUS_SCALE).scaleY(Motion.FOCUS_SCALE)
+                        itemView.animate().scaleX(Motion.FOCUS_SCALE).scaleY(Motion.FOCUS_SCALE)
                             .setDuration(Motion.FOCUS_MS).setInterpolator(Motion.STANDARD).start()
                     }
                 }

@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Switch estático 40x22dp (ativado = state_activated). Knob posicionado por insets (API 21+). -->
+<!-- Switch estático 40x22dp. Estados vêm da linha do menu (duplicateParentState):
+     activated = ligado; focused = linha clara, então as cores trocam para manter contraste. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape>
+                    <solid android:color="@color/accent_strong" />
+                    <corners android:radius="11dp" />
+                </shape>
+            </item>
+            <item android:bottom="3dp" android:left="21dp" android:right="3dp" android:top="3dp">
+                <shape android:shape="oval">
+                    <solid android:color="@color/focus_fill" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
     <item android:state_activated="true">
         <layer-list>
             <item>
@@ -11,7 +27,22 @@
             </item>
             <item android:bottom="3dp" android:left="21dp" android:right="3dp" android:top="3dp">
                 <shape android:shape="oval">
-                    <solid android:color="#FFFFFFFF" />
+                    <solid android:color="@color/on_accent" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape>
+                    <solid android:color="@color/toggle_off_track_focused" />
+                    <corners android:radius="11dp" />
+                </shape>
+            </item>
+            <item android:bottom="3dp" android:left="3dp" android:right="21dp" android:top="3dp">
+                <shape android:shape="oval">
+                    <solid android:color="@color/toggle_off_knob_focused" />
                 </shape>
             </item>
         </layer-list>
@@ -20,13 +51,13 @@
         <layer-list>
             <item>
                 <shape>
-                    <solid android:color="@color/toggle_off" />
+                    <solid android:color="@color/toggle_off_track" />
                     <corners android:radius="11dp" />
                 </shape>
             </item>
             <item android:bottom="3dp" android:left="3dp" android:right="21dp" android:top="3dp">
                 <shape android:shape="oval">
-                    <solid android:color="#FFD1D5DB" />
+                    <solid android:color="@color/toggle_off_knob" />
                 </shape>
             </item>
         </layer-list>

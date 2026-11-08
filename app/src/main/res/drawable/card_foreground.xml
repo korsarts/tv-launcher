@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground do card: sem contorno. Cards sem foco recebem um véu escuro; o focado (ou o que
+     está sendo movido) aparece com brilho total. Só o drawable anima: sem relayout. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="160"
+    android:exitFadeDuration="160">
+    <item android:drawable="@android:color/transparent" android:state_activated="true" />
+    <item android:drawable="@android:color/transparent" android:state_focused="true" />
+    <item>
+        <shape>
+            <solid android:color="@color/card_dim" />
+            <corners android:radius="@dimen/card_radius" />
+        </shape>
+    </item>
+</selector>

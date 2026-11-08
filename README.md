@@ -7,7 +7,9 @@ Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick
 - Relógio e data, linha de **Favoritos** (ordenável) e grade de **todos os apps**
 - Usa o banner 16:9 dos apps de TV; apps de celular (sideload) aparecem com ícone e nome
 - Menu lateral do app (segure OK ou aperte MENU): favoritar, mover (◀ ▶ e OK para confirmar), ocultar, informações, desinstalar
-- Cabeçalho recolhe ao descer na grade; rolagem suave mantendo o próximo card à vista
+- Tela inicial com favoritos na parte de baixo (área de cima reservada para widgets); ▼ nos
+  favoritos desliza para a grade em tela cheia, ▲ na primeira linha volta
+- Foco sem contorno: o card focado cresce e acende, os demais ficam levemente esmaecidos
 - Atualiza sozinho quando um app é instalado ou removido
 - Serviço de acessibilidade **opcional** para o botão HOME abrir este launcher sem root
 
