@@ -28,8 +28,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     private lateinit var prefs: Prefs
     private lateinit var repo: AppRepository
-    private lateinit var content: CollapsingLayout
-    private lateinit var header: View
+    private lateinit var content: PagerLayout
+    private lateinit var homePage: View
+    private lateinit var appsPage: View
     private lateinit var favoritesView: RecyclerView
     private lateinit var appsView: RecyclerView
     private lateinit var favoritesEmpty: TextView
@@ -51,6 +52,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
     /** Favorito sendo reordenado (modo mover), ou null. */
     private var movingPkg: String? = null
 
+    /** Último favorito focado: ao subir da grade, o foco volta para ele. */
+    private var lastFavoritePos = 0
+
     /** Onde o foco estava quando o painel abriu, para devolvê-lo ao fechar. */
     private var focusBeforePanel: View? = null
 
@@ -70,7 +74,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
         repo = AppRepository(this)
 
         content = findViewById(R.id.content)
-        header = findViewById(R.id.header)
+        homePage = findViewById(R.id.home_page)
+        appsPage = findViewById(R.id.apps_page)
         favoritesView = findViewById(R.id.favorites)
         appsView = findViewById(R.id.apps)
         favoritesEmpty = findViewById(R.id.favorites_empty)
@@ -175,7 +180,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
     private fun goHome(animate: Boolean) {
         panel.close(animate)
         exitMoveMode()
-        content.setCollapsed(false, animate)
+        content.showSecondPage(false, animate)
+        lastFavoritePos = 0
         appsView.stopScroll()
         favoritesView.stopScroll()
         appsView.scrollToPosition(0)
@@ -263,7 +269,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     // ---------------------------------------------------------------- foco
 
-    /** Recolhe o cabeçalho ao descer na grade e o mostra de novo ao voltar para cima. */
+    /** A página em cena acompanha o foco: grade focada = página da grade; senão, início. */
     private fun onFocusMoved(newFocus: View?) {
         if (newFocus == null || panel.isOpen) return
 
@@ -271,13 +277,13 @@ class MainActivity : Activity(), AppAdapter.Listener {
             if (packageAt(favoritesView, newFocus) != pkg) exitMoveMode()
         }
 
-        val gridHolder = appsView.findContainingViewHolder(newFocus)
-        if (gridHolder != null) {
-            // Linha 0 mantém o estado atual (histerese): entrar na grade não esconde os favoritos.
-            val pos = gridHolder.bindingAdapterPosition
-            if (pos != RecyclerView.NO_POSITION && pos / spanCount >= 1) content.setCollapsed(true)
-        } else if (newFocus.isDescendantOf(header)) {
-            content.setCollapsed(false)
+        favoritesView.findContainingViewHolder(newFocus)?.bindingAdapterPosition
+            ?.takeIf { it != RecyclerView.NO_POSITION }
+            ?.let { lastFavoritePos = it }
+
+        when {
+            newFocus.isDescendantOf(appsPage) -> content.showSecondPage(true)
+            newFocus.isDescendantOf(homePage) -> content.showSecondPage(false)
         }
     }
 
@@ -304,6 +310,12 @@ class MainActivity : Activity(), AppAdapter.Listener {
     /** Foca o item na posição após o próximo layout (antes disso a view pode não existir). */
     private fun focusPosition(rv: RecyclerView, position: Int) {
         if (position < 0) return
+        // Já está na tela e sem atualizações pendentes: foca direto, sem esperar layout.
+        if (!rv.hasPendingAdapterUpdates()) {
+            rv.layoutManager?.findViewByPosition(position)?.let { view ->
+                if (view.requestFocus()) return
+            }
+        }
         rv.scrollToPosition(position)
         afterNextLayout(rv) {
             (rv.layoutManager?.findViewByPosition(position) ?: rv.getChildAt(0))?.requestFocus()
@@ -345,8 +357,28 @@ class MainActivity : Activity(), AppAdapter.Listener {
         if (movingPkg == null) showAppMenu(app)
     }
 
+    override fun onAppKey(adapter: AppAdapter, position: Int, app: AppEntry, keyCode: Int, event: KeyEvent): Boolean {
+        if (movingPkg != null) return onMoveKey(app, keyCode, event)
+        if (event.action != KeyEvent.ACTION_DOWN || position == RecyclerView.NO_POSITION) return false
+        return when {
+            // ▼ nos favoritos: desce para a página da grade, começando pelo primeiro app.
+            keyCode == KeyEvent.KEYCODE_DPAD_DOWN && adapter === favoritesAdapter -> {
+                if (appsAdapter.itemCount == 0) return true
+                focusPosition(appsView, 0)
+                true
+            }
+            // ▲ na primeira linha da grade: volta para o favorito que estava focado.
+            keyCode == KeyEvent.KEYCODE_DPAD_UP && adapter === appsAdapter && position < spanCount &&
+                favoritesAdapter.itemCount > 0 -> {
+                focusPosition(favoritesView, lastFavoritePos.coerceIn(0, favoritesAdapter.itemCount - 1))
+                true
+            }
+            else -> false
+        }
+    }
+
     /** Modo mover: ◀ ▶ trocam de posição, OK/BACK confirmam, ▲ ▼ ficam presos no card. */
-    override fun onAppKey(app: AppEntry, keyCode: Int, event: KeyEvent): Boolean {
+    private fun onMoveKey(app: AppEntry, keyCode: Int, event: KeyEvent): Boolean {
         val pkg = movingPkg ?: return false
         if (app.packageName != pkg) return false
         val down = event.action == KeyEvent.ACTION_DOWN
@@ -366,7 +398,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         if (index < 0) return
         movingPkg = pkg
         favoritesAdapter.setMoving(pkg)
-        content.setCollapsed(false)
+        content.showSecondPage(false)
         focusPosition(favoritesView, index)
     }
 

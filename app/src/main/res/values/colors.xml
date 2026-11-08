@@ -1,25 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fundo -->
-    <color name="bg_glow">#FF1A2540</color>
-    <color name="bg_mid">#FF0C111C</color>
-    <color name="bg_base">#FF06080D</color>
+    <!-- Fundo: quase preto com um brilho frio discreto no canto superior -->
+    <color name="bg_glow">#FF141925</color>
+    <color name="bg_base">#FF08090D</color>
 
     <!-- Superfícies -->
-    <color name="card_bg">#FF1A2130</color>
-    <color name="surface">#FF141A26</color>
-    <color name="surface_soft">#14FFFFFF</color>
+    <color name="card_bg">#FF1A1E28</color>
+    <color name="surface">#FF12151C</color>
     <color name="scrim">#B3000000</color>
+    <!-- Véu sobre cards sem foco (o focado fica com brilho total) -->
+    <color name="card_dim">#47000000</color>
+    <color name="move_overlay">#A6000000</color>
 
-    <!-- Foco / destaque -->
-    <color name="focus_ring">#FFF5F7FA</color>
-    <color name="focus_fill">#FFF5F7FA</color>
-    <color name="on_focus">#FF0B0F17</color>
-    <color name="accent">#FF7AB8FF</color>
-    <color name="toggle_off">#FF4B5563</color>
+    <!-- Foco: superfície clara + conteúdo escuro (contraste ~18:1) -->
+    <color name="focus_fill">#FFF2F4F7</color>
+    <color name="on_focus">#FF0B0D12</color>
+    <color name="on_focus_secondary">#FF464E5C</color>
 
-    <!-- Texto -->
-    <color name="text_primary">#FFF3F4F6</color>
-    <color name="text_secondary">#FF9AA3B2</color>
-    <color name="text_tertiary">#FF6B7383</color>
+    <!-- Destaque (switch ligado). "strong" é a variante para fundo claro (linha focada). -->
+    <color name="accent">#FF8AB4F8</color>
+    <color name="on_accent">#FF0B1A33</color>
+    <color name="accent_strong">#FF1A56DB</color>
+
+    <!-- Switch desligado -->
+    <color name="toggle_off_track">#FF2E3440</color>
+    <color name="toggle_off_knob">#FF8E96A4</color>
+    <color name="toggle_off_track_focused">#FFA9B0BB</color>
+    <color name="toggle_off_knob_focused">#FF2F3540</color>
+
+    <!-- Texto sobre o fundo escuro (todos >= 4.5:1 sobre bg_base e surface) -->
+    <color name="text_primary">#FFF2F4F7</color>
+    <color name="text_secondary">#FFA3AAB7</color>
+    <color name="text_tertiary">#FF7F8796</color>
 </resources>

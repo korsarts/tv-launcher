@@ -174,14 +174,16 @@ class SidePanel(
         hint.visibility = if (item.hint.isNullOrEmpty()) View.GONE else View.VISIBLE
         val toggle = row.findViewById<View>(R.id.menu_toggle)
         toggle.visibility = if (item.checked != null) View.VISIBLE else View.GONE
-        toggle.isActivated = item.checked?.invoke() == true
+        // O estado "ligado" fica na linha (activated); o switch o recebe junto com o foco via
+        // duplicateParentState, e troca de cores quando a linha fica clara.
+        row.isActivated = item.checked?.invoke() == true
         row.contentDescription = item.label
 
         row.setOnClickListener {
             if (!isOpen) return@setOnClickListener
             if (item.keepOpen) {
                 item.action()
-                item.checked?.let { toggle.isActivated = it() }
+                item.checked?.let { row.isActivated = it() }
             } else {
                 close()
                 item.action()

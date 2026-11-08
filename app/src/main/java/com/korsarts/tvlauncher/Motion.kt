@@ -14,9 +14,10 @@ object Motion {
     const val FOCUS_MS = 160L
     const val PRESS_MS = 90L
     const val SCROLL_MS = 240
-    const val COLLAPSE_MS = 280L
+    /** Troca entre a página inicial e a grade (desloca a tela inteira). */
+    const val PAGE_MS = 360L
     const val PANEL_MS = 240L
 
-    const val FOCUS_SCALE = 1.08f
-    const val PRESS_SCALE = 1.0f
+    const val FOCUS_SCALE = 1.1f
+    const val PRESS_SCALE = 1.04f
 }

@@ -7,14 +7,16 @@
     android:focusable="true"
     android:orientation="vertical">
 
-    <!-- clipToOutline (ligado no código) recorta o banner nos cantos arredondados. -->
+    <!-- clipToOutline (ligado no código) recorta o banner nos cantos arredondados.
+         O zoom de foco é aplicado no item inteiro (não neste card): o RecyclerView recorta cada
+         item nos próprios limites, então escalar um filho do item cortava as bordas. -->
     <FrameLayout
         android:id="@+id/card"
         android:layout_width="@dimen/card_width"
         android:layout_height="@dimen/card_height"
         android:background="@drawable/card_background"
         android:duplicateParentState="true"
-        android:foreground="@drawable/card_focus_ring">
+        android:foreground="@drawable/card_foreground">
 
         <!-- Banner 16:9 (apps de TV) -->
         <ImageView
@@ -87,7 +89,7 @@
         android:id="@+id/label"
         android:layout_width="@dimen/card_width"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:alpha="0"
         android:ellipsize="end"
         android:fontFamily="sans-serif-medium"
