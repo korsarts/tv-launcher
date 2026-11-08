@@ -1,9 +1,14 @@
 package com.korsarts.tvlauncher
 
+import android.content.Context
 import android.graphics.drawable.Drawable
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -29,14 +34,25 @@ class SidePanel(
         val action: () -> Unit,
     )
 
+    /** Campo de texto no topo da página; [onSubmit] roda ao confirmar no teclado. */
+    class Input(
+        val hint: CharSequence,
+        val onSubmit: (String) -> Unit,
+    ) {
+        /** Último texto digitado, restaurado ao voltar para a página. */
+        internal var text: String = ""
+    }
+
     class Page(
         val title: CharSequence,
         val subtitle: CharSequence? = null,
         val icon: Drawable? = null,
-        val body: CharSequence? = null,
+        var body: CharSequence? = null,
         val items: List<Item>,
+        val input: Input? = null,
     ) {
-        internal var focusIndex = 0
+        /** Linha focada ao (re)abrir; -1 = campo de texto. */
+        internal var focusIndex = if (input != null) -1 else 0
     }
 
     private val overlay: ViewGroup = root.findViewById(R.id.panel_overlay)
@@ -47,6 +63,7 @@ class SidePanel(
     private val subtitleView: TextView = root.findViewById(R.id.panel_subtitle)
     private val scroll: ScrollView = root.findViewById(R.id.panel_scroll)
     private val bodyView: TextView = root.findViewById(R.id.panel_body)
+    private val inputView: EditText = root.findViewById(R.id.panel_input)
     private val itemsView: LinearLayout = root.findViewById(R.id.panel_items)
     private val inflater = LayoutInflater.from(root.context)
     private val slideDistance = root.resources.getDimension(R.dimen.panel_width)
@@ -59,6 +76,44 @@ class SidePanel(
     init {
         // Clique no scrim (mouse/touch, raro na TV) fecha.
         scrim.setOnClickListener { close() }
+        inputView.setOnEditorActionListener { _, actionId, event ->
+            when {
+                actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE -> {
+                    submitInput()
+                    true
+                }
+                // ENTER de teclado físico: chega como DOWN e UP; envia uma vez e consome os dois.
+                event?.keyCode == KeyEvent.KEYCODE_ENTER -> {
+                    if (event.action == KeyEvent.ACTION_DOWN) submitInput()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    /** Página no topo da pilha (a que está na tela). */
+    val currentPage: Page? get() = stack.lastOrNull()
+
+    /** Troca o texto de [page]; se ela estiver na tela, atualiza na hora. */
+    fun setBody(page: Page, body: CharSequence?) {
+        page.body = body
+        if (currentPage === page) {
+            bodyView.text = body
+            bodyView.visibility = if (body.isNullOrEmpty()) View.GONE else View.VISIBLE
+        }
+    }
+
+    private fun submitInput() {
+        val input = currentPage?.input ?: return
+        input.text = inputView.text.toString()
+        hideKeyboard()
+        if (input.text.isNotBlank()) input.onSubmit(input.text.trim())
+    }
+
+    private fun hideKeyboard() {
+        val imm = inputView.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(inputView.windowToken, 0)
     }
 
     fun open(page: Page) {
@@ -77,15 +132,15 @@ class SidePanel(
         panel.translationX = slideDistance * sign
         scrim.animate().alpha(1f).setDuration(Motion.PANEL_MS).setInterpolator(Motion.STANDARD).start()
         panel.animate().translationX(0f).setDuration(Motion.PANEL_MS).setInterpolator(Motion.EMPHASIZED).start()
-        focusRow(page.focusIndex)
+        focusPage(page)
         onOpened()
     }
 
     fun push(page: Page) {
-        stack.lastOrNull()?.focusIndex = focusedRowIndex()
+        stack.lastOrNull()?.let { saveState(it) }
         stack += page
         show(page, direction = 1)
-        focusRow(0)
+        focusPage(page)
     }
 
     /** BACK: volta uma página ou fecha. */
@@ -94,7 +149,7 @@ class SidePanel(
             stack.removeAt(stack.lastIndex)
             val page = stack.last()
             show(page, direction = -1)
-            focusRow(page.focusIndex)
+            focusPage(page)
         } else {
             close()
         }
@@ -103,6 +158,7 @@ class SidePanel(
     fun close(animate: Boolean = true) {
         if (!isOpen) return
         stack.clear()
+        hideKeyboard()
         // Sai do caminho do foco imediatamente; a animação de saída é só visual.
         overlay.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
         onClosed()
@@ -132,6 +188,15 @@ class SidePanel(
         iconView.visibility = if (page.icon == null) View.GONE else View.VISIBLE
         bodyView.text = page.body
         bodyView.visibility = if (page.body.isNullOrEmpty()) View.GONE else View.VISIBLE
+        val input = page.input
+        if (input != null) {
+            inputView.hint = input.hint
+            inputView.setText(input.text)
+            inputView.setSelection(inputView.text.length)
+            inputView.visibility = View.VISIBLE
+        } else {
+            inputView.visibility = View.GONE
+        }
 
         // Reaproveita as linhas já infladas.
         while (itemsView.childCount < page.items.size) {
@@ -191,11 +256,22 @@ class SidePanel(
         }
     }
 
+    /** Guarda o que restaurar ao voltar para [page]: linha focada (-1 = campo) e texto. */
+    private fun saveState(page: Page) {
+        page.input?.text = inputView.text.toString()
+        page.focusIndex = if (inputView.isFocused) -1 else focusedRowIndex()
+    }
+
     private fun focusedRowIndex(): Int {
         for (i in 0 until itemsView.childCount) {
             if (itemsView.getChildAt(i).isFocused) return i
         }
         return 0
+    }
+
+    /** Página com campo começa nele; as demais, na linha salva. */
+    private fun focusPage(page: Page) {
+        if (page.input != null && page.focusIndex < 0) inputView.requestFocus() else focusRow(page.focusIndex)
     }
 
     private fun focusRow(index: Int) {

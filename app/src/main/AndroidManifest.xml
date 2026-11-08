@@ -6,6 +6,9 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="true" />
 
+    <!-- Widget de clima (Open-Meteo, HTTPS). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Visibilidade de pacotes (API 30+): só precisamos ver apps com activity de launcher. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
