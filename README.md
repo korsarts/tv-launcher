@@ -61,7 +61,8 @@ dias, com a chance de chuva quando houver.
 - **Avisos:** uma faixa âmbar aparece quando há tempestade ou chuva forte nas próximas 12 horas,
   ou chuva provável (70% ou mais) nas próximas 3 horas.
 - **Qualidade do ar e UV:** índice de qualidade do ar (escala dos EUA) e índice UV de agora, com a
-  faixa por extenso. Se a consulta do ar falhar, a previsão aparece sem ela.
+  faixa por extenso. O UV só aparece de dia: some 1h antes do pôr do sol e volta depois do
+  amanhecer. Se a consulta do ar falhar, a previsão aparece sem ela.
 - **Linha que reveza:** umidade, vento, qualidade do ar e UV dividem a mesma linha e se alternam
   a cada 4,5 s com um fade curto (pausa quando o launcher sai da tela).
 - **Próximas datas:** o painel da previsão é selecionável (▲ a partir dos favoritos). Com ele
