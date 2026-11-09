@@ -323,16 +323,27 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     // ---------------------------------------------------------------- clima
 
-    /** Ao voltar para o launcher: busca se o dado venceu; senão só reagenda e redesenha. */
+    /** Intervalo da atualização automática, ou null se ela estiver desligada. */
+    private fun weatherIntervalMs(): Long? = prefs.weatherIntervalMin.takeIf { it > 0 }?.let { it * 60_000L }
+
+    /**
+     * Ao voltar para o launcher: busca se não há dado ou se ele venceu; senão só reagenda e
+     * redesenha. Com a atualização automática desligada, só busca quando não há nada salvo.
+     */
     private fun resumeWeather() {
         if (!prefs.weatherEnabled) return
         val data = weatherData
-        val age = if (data == null) Long.MAX_VALUE else System.currentTimeMillis() - data.fetchedAt
-        if (age >= WEATHER_REFRESH_MS || age < 0) {
+        if (data == null) {
+            refreshWeather()
+            return
+        }
+        val interval = weatherIntervalMs()
+        val age = System.currentTimeMillis() - data.fetchedAt
+        if (interval != null && (age >= interval || age < 0)) {
             refreshWeather()
         } else {
-            showWeather(data!!) // as "próximas horas" andam mesmo sem buscar de novo
-            scheduleWeather(WEATHER_REFRESH_MS - age)
+            showWeather(data) // as "próximas horas" andam mesmo sem buscar de novo
+            if (interval != null) scheduleWeather(interval - age)
         }
     }
 
@@ -348,7 +359,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
                     weatherData = result.data
                     showWeather(result.data)
                     updateSky(SKY_CHANGE_MS)
-                    scheduleWeather(WEATHER_REFRESH_MS)
+                    weatherIntervalMs()?.let { scheduleWeather(it) }
                 }
                 is WeatherRepository.Result.Failure -> {
                     val cached = weatherData
@@ -357,7 +368,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
                         result.noLocation -> weatherWidget.showMessage(R.string.weather_no_location)
                         else -> weatherWidget.showMessage(R.string.weather_unavailable)
                     }
-                    scheduleWeather(WEATHER_RETRY_MS)
+                    weatherIntervalMs()?.let { scheduleWeather(minOf(it, WEATHER_RETRY_MS)) }
                 }
             }
         }
@@ -804,11 +815,48 @@ class MainActivity : Activity(), AppAdapter.Listener {
                 setWeatherLocation(null)
             }
         }
+        items += SidePanel.Item(
+            R.drawable.ic_schedule, getString(R.string.opt_weather_interval),
+            weatherIntervalLabel(prefs.weatherIntervalMin), keepOpen = true,
+        ) {
+            panel.push(weatherIntervalPage())
+        }
         items += SidePanel.Item(R.drawable.ic_sync, getString(R.string.opt_weather_refresh)) {
             if (!prefs.weatherEnabled) setWeatherEnabled(true) else refreshWeather()
         }
         items += backItem()
         return SidePanel.Page(title = getString(R.string.opt_weather), items = items)
+    }
+
+    private fun weatherIntervalLabel(minutes: Int): String = when {
+        minutes <= 0 -> getString(R.string.weather_interval_off)
+        minutes < 60 -> resources.getQuantityString(R.plurals.weather_interval_minutes, minutes, minutes)
+        else -> resources.getQuantityString(R.plurals.weather_interval_hours, minutes / 60, minutes / 60)
+    }
+
+    private fun weatherIntervalPage(): SidePanel.Page {
+        val items = WEATHER_INTERVALS.map { minutes ->
+            val label = weatherIntervalLabel(minutes)
+            SidePanel.Item(
+                R.drawable.ic_schedule,
+                if (minutes == 30) getString(R.string.weather_interval_default, label) else label,
+                if (minutes == 0) getString(R.string.weather_interval_off_hint) else null,
+                checked = { prefs.weatherIntervalMin == minutes }, radio = true,
+            ) {
+                setWeatherInterval(minutes)
+            }
+        }
+        return SidePanel.Page(title = getString(R.string.opt_weather_interval), items = items).apply {
+            focusIndex = WEATHER_INTERVALS.indexOf(prefs.weatherIntervalMin).coerceAtLeast(0)
+        }
+    }
+
+    /** Novo intervalo vale na hora: se o dado já passou do novo limite, busca agora. */
+    private fun setWeatherInterval(minutes: Int) {
+        prefs.weatherIntervalMin = minutes
+        main.removeCallbacks(weatherTick)
+        if (resumed) resumeWeather()
+        panel.parentItem(getString(R.string.opt_weather_interval))?.hint = weatherIntervalLabel(minutes)
     }
 
     private fun citySearchPage(): SidePanel.Page {
@@ -864,7 +912,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
         const val SPIN_MS = 900L
         const val SKY_OFF_MS = 700L
         const val SKY_STYLE_MS = 900L
-        const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
+        /** Opções de atualização automática, em minutos (0 = desligada). */
+        val WEATHER_INTERVALS = intArrayOf(15, 30, 60, 120, 180, 360, 0)
         const val WEATHER_RETRY_MS = 5 * 60 * 1000L
     }
 }

@@ -36,7 +36,8 @@ dias, com a chance de chuva quando houver.
   estrelas, e chuva/garoa/neve/neblina leves mostram o sol, o sol baixo ou a lua atrás da nuvem.
   Vale para o tempo atual e para as próximas horas.
 - **Atualizar na hora:** botão ⟳ ao lado das opções no topo (gira enquanto busca).
-- **Atualização:** a cada 30 min enquanto o launcher está na tela (5 min após uma falha). A última
+- **Atualização:** a cada 30 min (ajustável em *Clima → Atualização automática*: 15 min a 6 h, ou
+  desligada para atualizar só pelo botão de atualizar) enquanto o launcher está na tela (5 min após uma falha). A última
   previsão fica salva e aparece na hora ao ligar a TV, mesmo sem rede.
 - **Desligar:** *Opções do launcher → Clima → Mostrar widget de clima*.
 - **Privacidade / serviços usados** (todos HTTPS, sem conta nem chave):

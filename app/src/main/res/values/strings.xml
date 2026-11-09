@@ -70,6 +70,18 @@
     <string name="opt_weather_auto">Usar localização automática</string>
     <string name="opt_weather_auto_hint">Detecta a cidade pelo IP da conexão</string>
     <string name="weather_refresh">Atualizar clima</string>
+    <string name="opt_weather_interval">Atualização automática</string>
+    <string name="weather_interval_off">Desligada</string>
+    <string name="weather_interval_off_hint">Só pelo botão de atualizar</string>
+    <string name="weather_interval_default">%1$s (padrão)</string>
+    <plurals name="weather_interval_minutes">
+        <item quantity="one">A cada %d minuto</item>
+        <item quantity="other">A cada %d minutos</item>
+    </plurals>
+    <plurals name="weather_interval_hours">
+        <item quantity="one">A cada %d hora</item>
+        <item quantity="other">A cada %d horas</item>
+    </plurals>
     <string name="opt_weather_refresh">Atualizar agora</string>
     <string name="weather_search_title">Escolher cidade</string>
     <string name="weather_search_hint">Nome da cidade</string>
