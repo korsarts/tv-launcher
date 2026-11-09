@@ -165,109 +165,115 @@
         </LinearLayout>
 
         <!--
-            Painel selecionável: com foco, mostra as setas e ◀ ▶ trocam entre a previsão (que define
+            Painel selecionável: com foco, mostra as setas (fora do retângulo) e ◀ ▶ trocam entre a previsão (que define
             a altura) e as próximas datas. O retângulo fica parado; só o conteúdo troca (WeatherWidget).
         -->
-        <FrameLayout
-            android:id="@+id/weather_panel"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="6"
-            android:background="@drawable/weather_panel_selector"
-            android:contentDescription="@string/weather_panel_description"
-            android:focusable="true">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="10dp">
-
-                <!-- Próximas horas (linha de cima) e próximos dias (linha de baixo): 5 colunas.
-                     Fica INVISIBLE (não GONE) com as datas na tela, para manter a altura. -->
-                <LinearLayout
-                    android:id="@+id/weather_forecast_page"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:id="@+id/weather_hours"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:baselineAligned="false"
-                        android:orientation="horizontal" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginEnd="12dp"
-                        android:layout_marginBottom="8dp"
-                        android:background="@color/weather_divider" />
-
-                    <LinearLayout
-                        android:id="@+id/weather_days"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:baselineAligned="false"
-                        android:orientation="horizontal" />
-                </LinearLayout>
-
-                <!-- Próximas datas: feriados, facultativos e comemorativas (linhas de item_date). -->
-                <LinearLayout
-                    android:id="@+id/weather_dates_page"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:orientation="vertical"
-                    android:paddingStart="28dp"
-                    android:paddingEnd="28dp"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:maxLines="1"
-                        android:text="@string/dates_title"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <LinearLayout
-                        android:id="@+id/weather_dates"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-                </LinearLayout>
-            </FrameLayout>
-
-            <!-- Setas: aparecem só com o painel focado. -->
+            <!-- Setas do lado de fora do painel: aparecem só com ele focado. -->
             <ImageView
                 android:id="@+id/weather_panel_prev"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_gravity="start|center_vertical"
-                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
                 android:alpha="0"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_chevron_left"
                 android:tint="@color/text_primary" />
 
+            <FrameLayout
+                android:id="@+id/weather_panel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/weather_panel_selector"
+                android:contentDescription="@string/weather_panel_description"
+                android:focusable="true">
+    
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:paddingTop="10dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="10dp">
+    
+                    <!-- Próximas horas (linha de cima) e próximos dias (linha de baixo): 5 colunas.
+                         Fica INVISIBLE (não GONE) com as datas na tela, para manter a altura. -->
+                    <LinearLayout
+                        android:id="@+id/weather_forecast_page"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+    
+                        <LinearLayout
+                            android:id="@+id/weather_hours"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:baselineAligned="false"
+                            android:orientation="horizontal" />
+    
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginEnd="12dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@color/weather_divider" />
+    
+                        <LinearLayout
+                            android:id="@+id/weather_days"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:baselineAligned="false"
+                            android:orientation="horizontal" />
+                    </LinearLayout>
+    
+                    <!-- Próximas datas: feriados, facultativos e comemorativas (linhas de item_date). -->
+                    <LinearLayout
+                        android:id="@+id/weather_dates_page"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:orientation="vertical"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:visibility="gone">
+    
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:maxLines="1"
+                            android:text="@string/dates_title"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+    
+                        <LinearLayout
+                            android:id="@+id/weather_dates"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </FrameLayout>
+            </FrameLayout>
+
             <ImageView
                 android:id="@+id/weather_panel_next"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="4dp"
                 android:alpha="0"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_chevron_right"
                 android:tint="@color/text_primary" />
-        </FrameLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Carregando / sem localização / indisponível -->
