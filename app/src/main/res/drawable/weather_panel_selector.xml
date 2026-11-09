@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Painel da previsão: com foco, fica um pouco mais claro e ganha um contorno suave. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="140"
+    android:exitFadeDuration="120">
+    <item android:state_focused="true">
+        <shape>
+            <solid android:color="@color/weather_panel_focused" />
+            <stroke android:width="2dp" android:color="@color/weather_panel_stroke" />
+            <corners android:radius="@dimen/card_radius" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/weather_panel_background" />
+</selector>

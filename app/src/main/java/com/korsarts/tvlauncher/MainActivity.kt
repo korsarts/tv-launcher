@@ -147,6 +147,15 @@ class MainActivity : Activity(), AppAdapter.Listener {
         weatherWidget = WeatherWidget(findViewById(R.id.widget_area))
         weatherWidget.root.visibility = if (prefs.weatherEnabled) View.VISIBLE else View.GONE
         weatherWidget.setDatesEnabled(prefs.holidaysEnabled)
+        // ▼ no painel do clima: volta ao favorito que estava focado.
+        weatherWidget.onExitDown = {
+            if (favoritesAdapter.itemCount > 0) {
+                focusPosition(favoritesView, lastFavoritePos.coerceIn(0, favoritesAdapter.itemCount - 1))
+                true
+            } else {
+                false
+            }
+        }
         weather.loadCached { cached ->
             if (cached != null && weatherData == null) {
                 weatherData = cached
@@ -749,6 +758,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
                 focusPosition(appsView, 0)
                 true
             }
+            // ▲ nos favoritos: sobe para o painel do clima (se ele estiver à vista e tiver o que alternar).
+            keyCode == KeyEvent.KEYCODE_DPAD_UP && adapter === favoritesAdapter && weatherWidget.focusPanel() -> true
             // ▲ na primeira linha da grade: volta para o favorito que estava focado.
             keyCode == KeyEvent.KEYCODE_DPAD_UP && adapter === appsAdapter && position < spanCount &&
                 favoritesAdapter.itemCount > 0 -> {

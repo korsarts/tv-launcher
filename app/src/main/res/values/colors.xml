@@ -35,6 +35,8 @@
 
     <!-- Widget de clima -->
     <color name="weather_panel">#8C0E121A</color>
+    <color name="weather_panel_focused">#B31A1F2B</color>
+    <color name="weather_panel_stroke">#73F2F4F7</color>
     <color name="weather_divider">#FF232836</color>
     <color name="weather_sun">#FFFFC94D</color>
     <color name="weather_moon">#FFD6DCF5</color>

@@ -118,7 +118,8 @@
     <string name="weather_join">%1$s · %2$s</string>
     <string name="weather_sun_times">%1$s – %2$s</string>
 
-    <!-- Próximas datas (painel que reveza com a previsão) -->
+    <!-- Próximas datas (página do painel da previsão, trocada com ◀ ▶) -->
+    <string name="weather_panel_description">Previsão e próximas datas. Use esquerda e direita para alternar.</string>
     <string name="dates_title">Próximas datas</string>
     <string name="dates_day">%1$d %2$s</string>
     <string name="dates_today">hoje</string>
@@ -200,7 +201,7 @@
     <string name="opt_weather_auto">Usar localização automática</string>
     <string name="opt_weather_auto_hint">Detecta a cidade pelo IP da conexão</string>
     <string name="opt_holidays_show">Mostrar próximas datas</string>
-    <string name="opt_holidays_hint">Feriados e datas comemorativas, alternando com a previsão</string>
+    <string name="opt_holidays_hint">Feriados e datas comemorativas; selecione o painel da previsão e use ◀ ▶</string>
     <string name="weather_refresh">Atualizar clima</string>
     <string name="opt_weather_interval">Atualização automática</string>
     <string name="weather_interval_off">Desligada</string>

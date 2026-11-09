@@ -4,7 +4,9 @@ import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateFormat
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.SoundEffectConstants
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -48,6 +50,12 @@ class WeatherWidget(container: ViewGroup) {
     private val forecastPage: View = root.findViewById(R.id.weather_forecast_page)
     private val datesPage: View = root.findViewById(R.id.weather_dates_page)
     private val dateRows = buildDateRows(root.findViewById(R.id.weather_dates))
+    private val panel: View = root.findViewById(R.id.weather_panel)
+    private val arrowPrev: View = root.findViewById(R.id.weather_panel_prev)
+    private val arrowNext: View = root.findViewById(R.id.weather_panel_next)
+
+    /** ▼ com o painel focado: quem usa o widget leva o foco de volta (ao último favorito). */
+    var onExitDown: (() -> Boolean)? = null
 
     private val ptBr: Locale = Locale.forLanguageTag("pt-BR")
 
@@ -67,30 +75,17 @@ class WeatherWidget(container: ViewGroup) {
         }
     }
 
-    // Painel da direita: reveza a previsão com as próximas datas (só se houver alguma perto).
+    // Painel da direita: com foco, ◀ ▶ trocam entre a previsão e as próximas datas.
     private var datesEnabled = true
-    private var showingDates = false
+    private var pageIndex = 0
     private var switchingPage = false
     private val pageShift = 24 * context.resources.displayMetrics.density
-    private val pageTick = object : Runnable {
-        override fun run() {
-            when {
-                !content.isShown -> {
-                    resetPages()
-                    handler.postDelayed(this, FORECAST_MS)
-                }
-                fading -> handler.postDelayed(this, WAIT_MS) // espera a linha de fatos terminar
-                showingDates -> {
-                    switchPage(toDates = false)
-                    handler.postDelayed(this, FORECAST_MS)
-                }
-                datesEnabled && bindDates(System.currentTimeMillis()) -> {
-                    switchPage(toDates = true)
-                    handler.postDelayed(this, DATES_MS)
-                }
-                else -> handler.postDelayed(this, FORECAST_MS)
-            }
-        }
+    private val nudge = 4 * context.resources.displayMetrics.density
+
+    init {
+        panel.setOnFocusChangeListener { _, hasFocus -> showArrows(hasFocus) }
+        panel.setOnKeyListener { _, keyCode, event -> onPanelKey(keyCode, event) }
+        updateFocusable()
     }
 
     private class Cell(view: View) {
@@ -133,7 +128,7 @@ class WeatherWidget(container: ViewGroup) {
 
     fun showMessage(textRes: Int) {
         content.animate().cancel()
-        resetPages()
+        applyPage()
         content.visibility = View.INVISIBLE
         message.setText(textRes)
         message.visibility = View.VISIBLE
@@ -202,8 +197,8 @@ class WeatherWidget(container: ViewGroup) {
             bindPrecip(cell, d.precip)
         }
 
-        // Com as datas na tela, atualiza também (a virada do dia aparece aqui).
-        if (showingDates && !switchingPage && !bindDates(nowMs)) resetPages()
+        // As datas também andam com o tempo (a virada do dia aparece aqui).
+        if (datesEnabled) bindDates(nowMs)
 
         message.visibility = View.GONE
         if (content.visibility != View.VISIBLE) fadeIn()
@@ -254,13 +249,10 @@ class WeatherWidget(container: ViewGroup) {
         if (active == value) return
         active = value
         handler.removeCallbacks(rotate)
-        handler.removeCallbacks(pageTick)
         if (value) {
             handler.postDelayed(rotate, FACT_MS)
-            handler.postDelayed(pageTick, FORECAST_MS)
         } else {
-            // Ao voltar ao launcher, quem aparece primeiro é a previsão.
-            resetPages()
+            applyPage() // termina uma troca de página pela metade
             details.animate().cancel()
             fading = false
             details.alpha = 1f
@@ -287,26 +279,71 @@ class WeatherWidget(container: ViewGroup) {
             .start()
     }
 
-    /** Liga ou desliga o painel de datas; desligado com as datas na tela, volta para a previsão. */
+    /** Liga ou desliga o painel de datas; sem ele, o painel fica só na previsão e não recebe foco. */
     fun setDatesEnabled(value: Boolean) {
         datesEnabled = value
-        if (!value) resetPages()
+        pageIndex = 0
+        if (value) bindDates(System.currentTimeMillis())
+        applyPage()
+        updateFocusable()
     }
 
-    /** Sai deslizando para a esquerda; a outra página entra pela direita. */
-    private fun switchPage(toDates: Boolean) {
-        val out = if (toDates) forecastPage else datesPage
-        val into = if (toDates) datesPage else forecastPage
+    /** Leva o foco ao painel (▲ nos favoritos). False se não há o que alternar ou ele não está à vista. */
+    fun focusPanel(): Boolean = panel.isFocusable && panel.isShown && panel.requestFocus()
+
+    private fun pages(): List<View> = if (datesEnabled) listOf(forecastPage, datesPage) else listOf(forecastPage)
+
+    private fun currentPage(): View = pages().getOrElse(pageIndex) { forecastPage }
+
+    private fun updateFocusable() {
+        panel.isFocusable = pages().size > 1
+        showArrows(panel.isFocused)
+    }
+
+    private fun onPanelKey(keyCode: Int, event: KeyEvent): Boolean {
+        val down = event.action == KeyEvent.ACTION_DOWN
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (down) step(-1)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (down) step(+1)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> down && onExitDown?.invoke() == true
+            else -> false
+        }
+    }
+
+    /** Vai para a página vizinha (dá a volta nas pontas). */
+    private fun step(dir: Int) {
+        val list = pages()
+        if (list.size < 2) return
+        applyPage() // apertou de novo no meio da troca: termina a anterior na hora
+        val from = currentPage()
+        pageIndex = (pageIndex + dir).mod(list.size)
+        val to = currentPage()
+        if (to === datesPage) bindDates(System.currentTimeMillis())
+        panel.playSoundEffect(if (dir < 0) SoundEffectConstants.NAVIGATION_LEFT else SoundEffectConstants.NAVIGATION_RIGHT)
+        val arrow = if (dir < 0) arrowPrev else arrowNext
+        arrow.animate().translationX(dir * nudge).setDuration(Motion.PRESS_MS)
+            .withEndAction { arrow.animate().translationX(0f).setDuration(Motion.FOCUS_MS).start() }
+            .start()
+        switchPage(from, to, dir)
+    }
+
+    /** A página atual sai para o lado oposto a [dir]; a nova entra pelo lado de [dir]. */
+    private fun switchPage(out: View, into: View, dir: Int) {
         switchingPage = true
-        showingDates = toDates
-        out.animate().alpha(0f).translationX(-pageShift)
+        out.animate().alpha(0f).translationX(-dir * pageShift)
             .setDuration(PAGE_OUT_MS).setInterpolator(Motion.STANDARD).withLayer()
             .withEndAction {
                 // A previsão fica INVISIBLE (não GONE): é ela que dá a altura do painel.
                 out.visibility = if (out === forecastPage) View.INVISIBLE else View.GONE
                 into.visibility = View.VISIBLE
                 into.alpha = 0f
-                into.translationX = pageShift
+                into.translationX = dir * pageShift
                 into.animate().alpha(1f).translationX(0f)
                     .setDuration(PAGE_IN_MS).setInterpolator(Motion.STANDARD).withLayer()
                     .withEndAction { switchingPage = false }
@@ -315,29 +352,34 @@ class WeatherWidget(container: ViewGroup) {
             .start()
     }
 
-    /** Volta para a previsão na hora, sem animação. */
-    private fun resetPages() {
+    /** Mostra a página atual na hora, sem animação. */
+    private fun applyPage() {
         forecastPage.animate().cancel()
         datesPage.animate().cancel()
         switchingPage = false
-        showingDates = false
-        forecastPage.visibility = View.VISIBLE
-        forecastPage.alpha = 1f
-        forecastPage.translationX = 0f
-        datesPage.visibility = View.GONE
-        datesPage.alpha = 1f
-        datesPage.translationX = 0f
+        val current = currentPage()
+        for (p in listOf(forecastPage, datesPage)) {
+            p.alpha = 1f
+            p.translationX = 0f
+            p.visibility = when {
+                p === current -> View.VISIBLE
+                p === forecastPage -> View.INVISIBLE
+                else -> View.GONE
+            }
+        }
     }
 
-    /**
-     * Preenche as linhas com as próximas datas a partir de hoje. Retorna false (e não mexe em
-     * nada) se a mais próxima estiver a mais de [DATES_AHEAD_DAYS] dias.
-     */
-    private fun bindDates(nowMs: Long): Boolean {
+    private fun showArrows(show: Boolean) {
+        val alpha = if (show && pages().size > 1) 1f else 0f
+        for (a in listOf(arrowPrev, arrowNext)) {
+            a.animate().alpha(alpha).setDuration(Motion.FOCUS_MS).start()
+        }
+    }
+
+    /** Preenche as linhas com as próximas datas a partir de hoje. */
+    private fun bindDates(nowMs: Long) {
         val tz = TimeZone.getDefault()
         val list = Holidays.upcoming(nowMs, tz, DATE_ROWS)
-        val first = list.firstOrNull() ?: return false
-        if (Holidays.daysUntil(first, nowMs, tz) > DATES_AHEAD_DAYS) return false
 
         // As datas são dias "puros" (sem fuso): formata em UTC a meia-noite do dia.
         val utc = TimeZone.getTimeZone("UTC")
@@ -376,7 +418,6 @@ class WeatherWidget(container: ViewGroup) {
                 else -> context.resources.getQuantityString(R.plurals.dates_in_days, days, days)
             }
         }
-        return true
     }
 
     private fun bindPrecip(cell: Cell, precip: Int?) {
@@ -413,15 +454,8 @@ class WeatherWidget(container: ViewGroup) {
         private const val FADE_IN_MS = 360L
         private const val HALF_HOUR_MS = 30 * 60 * 1000L
         private const val DAY_MS = 24 * 60 * 60 * 1000L
-        /** Tempo de cada página do painel da direita. */
-        private const val FORECAST_MS = 20_000L
-        private const val DATES_MS = 10_000L
-        /** Espera curta quando a linha de fatos está no meio da troca. */
-        private const val WAIT_MS = 400L
         private const val PAGE_OUT_MS = 280L
         private const val PAGE_IN_MS = 360L
         private const val DATE_ROWS = 4
-        /** O painel de datas só entra se a próxima data estiver a até tantos dias. */
-        private const val DATES_AHEAD_DAYS = 30
     }
 }
