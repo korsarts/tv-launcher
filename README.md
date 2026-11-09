@@ -29,6 +29,9 @@ dias, com a chance de chuva quando houver.
   tom próprio). As mudanças são animadas. O céu é desenhado num bitmap de 192x108 esticado com
   filtro, então custa na GPU o mesmo que um degradê simples. Liga/desliga em
   *Opções do launcher → Fundo dinâmico* (desligado volta ao fundo escuro fixo).
+- **Estilos do fundo** (*Opções do launcher → Estilo do fundo*, troca com fade): Mesh sóbrio,
+  Aurora (faixas de luz onduladas), Tonal suave, Vibrante, Minimal escuro e Duotone. Todos seguem
+  a hora do dia e o clima.
 - **Ícones por hora do dia:** amanhecer e pôr do sol têm ícones próprios, a noite mostra lua e
   estrelas, e chuva/garoa/neve/neblina leves mostram o sol, o sol baixo ou a lua atrás da nuvem.
   Vale para o tempo atual e para as próximas horas.

@@ -59,4 +59,13 @@
         android:background="@drawable/toggle"
         android:duplicateParentState="true"
         android:visibility="gone" />
+
+    <View
+        android:id="@+id/menu_radio"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="12dp"
+        android:background="@drawable/radio"
+        android:duplicateParentState="true"
+        android:visibility="gone" />
 </LinearLayout>

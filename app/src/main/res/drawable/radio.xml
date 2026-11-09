@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Opção única 22dp. Estados vêm da linha do menu (duplicateParentState), como o toggle:
+     activated = selecionado; focused = linha clara, então as cores trocam para manter contraste. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:state_focused="true">
+        <layer-list>
+            <item><shape android:shape="oval"><stroke android:width="2dp" android:color="@color/accent_strong" /></shape></item>
+            <item android:bottom="6dp" android:left="6dp" android:right="6dp" android:top="6dp">
+                <shape android:shape="oval"><solid android:color="@color/accent_strong" /></shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:state_activated="true">
+        <layer-list>
+            <item><shape android:shape="oval"><stroke android:width="2dp" android:color="@color/accent" /></shape></item>
+            <item android:bottom="6dp" android:left="6dp" android:right="6dp" android:top="6dp">
+                <shape android:shape="oval"><solid android:color="@color/accent" /></shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:state_focused="true">
+        <shape android:shape="oval"><stroke android:width="2dp" android:color="@color/toggle_off_knob_focused" /></shape>
+    </item>
+    <item>
+        <shape android:shape="oval"><stroke android:width="2dp" android:color="@color/toggle_off_knob" /></shape>
+    </item>
+</selector>

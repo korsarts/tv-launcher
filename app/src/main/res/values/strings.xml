@@ -47,6 +47,19 @@
 
     <string name="opt_sky">Fundo dinâmico</string>
     <string name="opt_sky_hint">Céu que muda com a hora e o clima</string>
+    <string name="opt_sky_style">Estilo do fundo</string>
+    <string name="sky_style_mesh">Mesh sóbrio</string>
+    <string name="sky_style_mesh_hint">Manchas difusas que seguem o sol</string>
+    <string name="sky_style_aurora">Aurora</string>
+    <string name="sky_style_aurora_hint">Faixas de luz onduladas</string>
+    <string name="sky_style_tonal">Tonal suave</string>
+    <string name="sky_style_tonal_hint">Uma cor por fase, baixo contraste</string>
+    <string name="sky_style_vibrant">Vibrante</string>
+    <string name="sky_style_vibrant_hint">Cores saturadas em diagonal</string>
+    <string name="sky_style_minimal">Minimal escuro</string>
+    <string name="sky_style_minimal_hint">Quase preto, só um brilho de cor</string>
+    <string name="sky_style_duotone">Duotone</string>
+    <string name="sky_style_duotone_hint">Duas cores em diagonal marcada</string>
     <string name="opt_weather">Clima</string>
     <string name="opt_weather_hint">Widget, cidade e atualização</string>
     <string name="opt_weather_show">Mostrar widget de clima</string>

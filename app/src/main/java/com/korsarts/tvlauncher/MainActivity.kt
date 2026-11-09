@@ -96,7 +96,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         setContentView(R.layout.activity_main)
 
         prefs = Prefs(this)
-        sky = SkyDrawable(SkyState.BLANK)
+        sky = SkyDrawable(SkyState.BLANK, SkyStyle.from(prefs.skyStyle))
         if (prefs.skyEnabled) window.setBackgroundDrawable(sky)
         repo = AppRepository(this)
 
@@ -395,6 +395,19 @@ class MainActivity : Activity(), AppAdapter.Listener {
         }
     }
 
+    /** Troca o estilo com crossfade; escolher um estilo também liga o fundo dinâmico. */
+    private fun setSkyStyle(style: SkyStyle) {
+        prefs.skyStyle = style.id
+        if (!prefs.skyEnabled) {
+            sky.setStyle(style, SkyState.BLANK, 0)
+            setSkyEnabled(true)
+        } else {
+            sky.setStyle(style, skyTarget(style), SKY_STYLE_MS)
+        }
+        // Atualiza o texto de apoio do item no menu principal ao voltar.
+        panel.parentItem(getString(R.string.opt_sky_style))?.hint = getString(style.label)
+    }
+
     private val restoreStaticBackground = Runnable {
         sky.stop()
         if (!prefs.skyEnabled) window.setBackgroundDrawableResource(R.drawable.bg_window)
@@ -403,10 +416,14 @@ class MainActivity : Activity(), AppAdapter.Listener {
     /** Recalcula o céu para agora (com o clima, se houver) e anima até ele. */
     private fun updateSky(durationMs: Long) {
         if (!prefs.skyEnabled) return
+        sky.setState(skyTarget(sky.style), durationMs)
+    }
+
+    private fun skyTarget(style: SkyStyle): SkyState {
         val now = System.currentTimeMillis()
         val data = weatherData?.takeIf { prefs.weatherEnabled }
         val (rise, set) = data?.sunTimes(now) ?: localSunTimes(now)
-        sky.setState(SkyState.compute(now, rise, set, data?.current?.code, data?.current?.cloudCover), durationMs)
+        return SkyState.compute(style, now, rise, set, data?.current?.code, data?.current?.cloudCover)
     }
 
     /** Sem previsão: 6h/18h no fuso do aparelho. */
@@ -727,6 +744,12 @@ class MainActivity : Activity(), AppAdapter.Listener {
                 setSkyEnabled(!prefs.skyEnabled)
             },
             SidePanel.Item(
+                R.drawable.ic_tune, getString(R.string.opt_sky_style), getString(sky.style.label),
+                keepOpen = true,
+            ) {
+                panel.push(skyStylePage())
+            },
+            SidePanel.Item(
                 R.drawable.ic_weather, getString(R.string.opt_weather), getString(R.string.opt_weather_hint),
                 keepOpen = true,
             ) {
@@ -737,6 +760,20 @@ class MainActivity : Activity(), AppAdapter.Listener {
             },
         )
         openPanel(SidePanel.Page(title = getString(R.string.launcher_options), items = items))
+    }
+
+    private fun skyStylePage(): SidePanel.Page {
+        val items = SkyStyle.values().map { style ->
+            SidePanel.Item(
+                R.drawable.ic_gradient, getString(style.label), getString(style.hint),
+                checked = { sky.style == style }, radio = true,
+            ) {
+                setSkyStyle(style)
+            }
+        }
+        return SidePanel.Page(title = getString(R.string.opt_sky_style), items = items).apply {
+            focusIndex = SkyStyle.values().indexOf(sky.style)
+        }
     }
 
     private fun backItem() = SidePanel.Item(R.drawable.ic_chevron_left, getString(R.string.back), keepOpen = true) {
@@ -826,6 +863,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         const val SKY_CHANGE_MS = 2500L
         const val SPIN_MS = 900L
         const val SKY_OFF_MS = 700L
+        const val SKY_STYLE_MS = 900L
         const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
         const val WEATHER_RETRY_MS = 5 * 60 * 1000L
     }

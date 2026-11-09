@@ -36,6 +36,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_SKY_ENABLED, true)
         set(value) = sp.edit().putBoolean(KEY_SKY_ENABLED, value).apply()
 
+    /** Id do [SkyStyle] escolhido. */
+    var skyStyle: String?
+        get() = sp.getString(KEY_SKY_STYLE, null)
+        set(value) = sp.edit().putString(KEY_SKY_STYLE, value).apply()
+
     var weatherEnabled: Boolean
         get() = sp.getBoolean(KEY_WEATHER_ENABLED, true)
         set(value) = sp.edit().putBoolean(KEY_WEATHER_ENABLED, value).apply()
@@ -98,6 +103,7 @@ class Prefs(context: Context) {
         private const val KEY_REDIRECT = "redirect_stock"
         private const val KEY_WEATHER_ENABLED = "weather_enabled"
         private const val KEY_SKY_ENABLED = "sky_enabled"
+        private const val KEY_SKY_STYLE = "sky_style"
         private const val KEY_WEATHER_NAME = "weather_name"
         private const val KEY_WEATHER_REGION = "weather_region"
         private const val KEY_WEATHER_LAT = "weather_lat"

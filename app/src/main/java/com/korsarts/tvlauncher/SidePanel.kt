@@ -26,9 +26,12 @@ class SidePanel(
     class Item(
         val icon: Int, // @DrawableRes
         val label: CharSequence,
-        val hint: CharSequence? = null,
+        /** Mutável: a ação pode atualizar o texto de apoio (vale ao reexibir a página). */
+        var hint: CharSequence? = null,
         /** Não nulo = linha com switch; o painel continua aberto e o switch é atualizado. */
         val checked: (() -> Boolean)? = null,
+        /** Com [checked]: mostra uma opção única (radio) em vez do switch. */
+        val radio: Boolean = false,
         /** Ações que abrem subpágina devem manter o painel aberto. */
         val keepOpen: Boolean = checked != null,
         val action: () -> Unit,
@@ -94,6 +97,10 @@ class SidePanel(
 
     /** Página no topo da pilha (a que está na tela). */
     val currentPage: Page? get() = stack.lastOrNull()
+
+    /** Item com [label] na página abaixo da atual (a que volta com BACK), se houver. */
+    fun parentItem(label: CharSequence): Item? =
+        stack.getOrNull(stack.size - 2)?.items?.firstOrNull { it.label.toString() == label.toString() }
 
     /** Troca o texto de [page]; se ela estiver na tela, atualiza na hora. */
     fun setBody(page: Page, body: CharSequence?) {
@@ -238,7 +245,9 @@ class SidePanel(
         hint.text = item.hint
         hint.visibility = if (item.hint.isNullOrEmpty()) View.GONE else View.VISIBLE
         val toggle = row.findViewById<View>(R.id.menu_toggle)
-        toggle.visibility = if (item.checked != null) View.VISIBLE else View.GONE
+        toggle.visibility = if (item.checked != null && !item.radio) View.VISIBLE else View.GONE
+        row.findViewById<View>(R.id.menu_radio).visibility =
+            if (item.checked != null && item.radio) View.VISIBLE else View.GONE
         // O estado "ligado" fica na linha (activated); o switch o recebe junto com o foco via
         // duplicateParentState, e troca de cores quando a linha fica clara.
         row.isActivated = item.checked?.invoke() == true
@@ -248,11 +257,24 @@ class SidePanel(
             if (!isOpen) return@setOnClickListener
             if (item.keepOpen) {
                 item.action()
-                item.checked?.let { row.isActivated = it() }
+                if (item.checked != null) refreshChecked()
             } else {
                 close()
                 item.action()
             }
+        }
+    }
+
+    /** Reaplica o estado ligado/desligado de todas as linhas da página atual (ex.: radio). */
+    private fun refreshChecked() {
+        val page = currentPage ?: return
+        for (i in page.items.indices) {
+            val item = page.items[i]
+            val row = itemsView.getChildAt(i) ?: continue
+            row.isActivated = item.checked?.invoke() == true
+            val hint = row.findViewById<TextView>(R.id.menu_hint)
+            hint.text = item.hint
+            hint.visibility = if (item.hint.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
     }
 
