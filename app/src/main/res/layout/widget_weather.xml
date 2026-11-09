@@ -120,6 +120,7 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
+            <!-- Umidade, vento, qualidade do ar e UV se revezam nesta linha (WeatherWidget). -->
             <TextView
                 android:id="@+id/weather_details"
                 android:layout_width="wrap_content"
@@ -129,18 +130,6 @@
                 android:maxLines="1"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
-
-            <!-- Qualidade do ar e índice UV; some se nenhum dos dois estiver disponível. -->
-            <TextView
-                android:id="@+id/weather_air"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp"
-                android:visibility="gone" />
 
             <!-- Nascer e pôr do sol + fase da lua (o disco é um MoonDrawable posto no código). -->
             <LinearLayout

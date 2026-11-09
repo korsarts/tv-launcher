@@ -195,6 +195,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
             loadApps()
         }
         resumeWeather()
+        weatherWidget.setActive(true)
         systemStatus.start()
         autoCheckUpdate()
         updateSky(if (weatherData == null) SKY_CHANGE_MS else SKY_TICK_ANIM_MS)
@@ -204,6 +205,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     override fun onPause() {
         resumed = false
+        weatherWidget.setActive(false)
         systemStatus.stop()
         main.removeCallbacks(weatherTick)
         main.removeCallbacks(skyTick)

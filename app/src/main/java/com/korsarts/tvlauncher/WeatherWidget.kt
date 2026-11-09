@@ -1,5 +1,7 @@
 package com.korsarts.tvlauncher
 
+import android.os.Handler
+import android.os.Looper
 import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
@@ -28,7 +30,6 @@ class WeatherWidget(container: ViewGroup) {
     private val feels: TextView = root.findViewById(R.id.weather_feels)
     private val details: TextView = root.findViewById(R.id.weather_details)
     private val alert: TextView = root.findViewById(R.id.weather_alert)
-    private val air: TextView = root.findViewById(R.id.weather_air)
     private val sun: TextView = root.findViewById(R.id.weather_sun)
     private val moon: TextView = root.findViewById(R.id.weather_moon)
     // resources.getColor(int): a versão sem tema é a única disponível na API 21.
@@ -44,6 +45,21 @@ class WeatherWidget(container: ViewGroup) {
     private val dayCells = buildCells(root.findViewById(R.id.weather_days))
 
     private val ptBr: Locale = Locale.forLanguageTag("pt-BR")
+
+    // Linha que reveza umidade, vento, qualidade do ar e UV com um fade curto.
+    private val handler = Handler(Looper.getMainLooper())
+    private var facts: List<String> = emptyList()
+    private var factIndex = 0
+    private var fading = false
+    private var active = false
+    private val shift = 6 * context.resources.displayMetrics.density
+    private val rotate = object : Runnable {
+        override fun run() {
+            // Só anima com o widget à vista; fora disso, só espera a próxima vez.
+            if (facts.size > 1 && details.isShown) nextFact()
+            handler.postDelayed(this, FACT_MS)
+        }
+    }
 
     private class Cell(view: View) {
         val root = view
@@ -95,14 +111,13 @@ class WeatherWidget(container: ViewGroup) {
         } else {
             context.getString(R.string.weather_feels_only, c.feelsLike.r())
         }
-        details.text = context.getString(R.string.weather_details, c.humidity, c.windKmh.r())
+        setFacts(buildFacts(data))
 
         // Rótulos no fuso da cidade (pode não ser o do aparelho se a cidade foi escolhida à mão).
         val hourFmt = SimpleDateFormat(if (DateFormat.is24HourFormat(context)) "H'h'" else "h a", ptBr)
             .apply { timeZone = data.timeZone }
 
         bindAlert(data.alert(nowMs), nowMs, hourFmt)
-        bindAir(data)
         val clockFmt = DateFormat.getTimeFormat(context).apply { timeZone = data.timeZone }
         sun.text = context.getString(
             R.string.weather_sun_times, clockFmt.format(Date(sunrise)), clockFmt.format(Date(sunset)),
@@ -158,19 +173,60 @@ class WeatherWidget(container: ViewGroup) {
         alert.visibility = View.VISIBLE
     }
 
-    private fun bindAir(data: WeatherData) {
-        val aqi = data.air?.usAqi?.let {
-            context.getString(R.string.weather_air, context.getString(WeatherScale.aqiLabel(it)), it)
+    /** Umidade e vento sempre; ar e UV quando vieram na previsão. */
+    private fun buildFacts(data: WeatherData): List<String> {
+        val c = data.current
+        val list = ArrayList<String>(4)
+        list += context.getString(R.string.weather_humidity, c.humidity)
+        list += context.getString(R.string.weather_wind, c.windKmh.r())
+        data.air?.usAqi?.let {
+            list += context.getString(R.string.weather_air, context.getString(WeatherScale.aqiLabel(it)), it)
         }
-        val uv = data.current.uv?.r()?.let {
-            context.getString(R.string.weather_uv, it, context.getString(WeatherScale.uvLabel(it)))
+        c.uv?.r()?.let {
+            list += context.getString(R.string.weather_uv, it, context.getString(WeatherScale.uvLabel(it)))
         }
-        val text = when {
-            aqi != null && uv != null -> context.getString(R.string.weather_join, aqi, uv)
-            else -> aqi ?: uv
+        return list
+    }
+
+    /** Troca os textos sem reiniciar o revezamento: a posição atual continua na tela. */
+    private fun setFacts(list: List<String>) {
+        facts = list
+        if (factIndex >= list.size) factIndex = 0
+        if (!fading) details.text = list.getOrNull(factIndex)
+    }
+
+    /** Liga o revezamento com o launcher na tela; desliga (parado no texto atual) fora dela. */
+    fun setActive(value: Boolean) {
+        if (active == value) return
+        active = value
+        handler.removeCallbacks(rotate)
+        if (value) {
+            handler.postDelayed(rotate, FACT_MS)
+        } else {
+            details.animate().cancel()
+            fading = false
+            details.alpha = 1f
+            details.translationY = 0f
+            details.text = facts.getOrNull(factIndex)
         }
-        air.text = text
-        air.visibility = if (text == null) View.GONE else View.VISIBLE
+    }
+
+    /** Sobe e some; troca o texto; entra de baixo. */
+    private fun nextFact() {
+        fading = true
+        details.animate().alpha(0f).translationY(-shift)
+            .setDuration(FADE_OUT_MS).setInterpolator(Motion.STANDARD)
+            .withEndAction {
+                if (facts.isEmpty()) return@withEndAction
+                factIndex = (factIndex + 1) % facts.size
+                details.text = facts[factIndex]
+                details.translationY = shift
+                details.animate().alpha(1f).translationY(0f)
+                    .setDuration(FADE_IN_MS).setInterpolator(Motion.STANDARD)
+                    .withEndAction { fading = false }
+                    .start()
+            }
+            .start()
     }
 
     private fun bindPrecip(cell: Cell, precip: Int?) {
@@ -201,6 +257,10 @@ class WeatherWidget(container: ViewGroup) {
 
     companion object {
         const val COLUMNS = 5
+        /** Tempo de cada informação na tela, contando a troca. */
+        private const val FACT_MS = 4500L
+        private const val FADE_OUT_MS = 280L
+        private const val FADE_IN_MS = 360L
         private const val HALF_HOUR_MS = 30 * 60 * 1000L
     }
 }

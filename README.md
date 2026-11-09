@@ -51,6 +51,8 @@ dias, com a chance de chuva quando houver.
   ou chuva provável (70% ou mais) nas próximas 3 horas.
 - **Qualidade do ar e UV:** índice de qualidade do ar (escala dos EUA) e índice UV de agora, com a
   faixa por extenso. Se a consulta do ar falhar, a previsão aparece sem ela.
+- **Linha que reveza:** umidade, vento, qualidade do ar e UV dividem a mesma linha e se alternam
+  a cada 4,5 s com um fade curto (pausa quando o launcher sai da tela).
 - **Sol e lua:** horários do nascer e do pôr do sol e a fase da lua (calculada no aparelho; o
   disco é espelhado no hemisfério sul).
 - **Atualizar na hora:** botão ⟳ ao lado das opções no topo (gira enquanto busca).

@@ -74,7 +74,7 @@
     <string name="about_services">Serviços e privacidade</string>
     <string name="about_services_hint">O que o launcher acessa na internet</string>
     <string name="about_services_text">O TV Launcher não tem conta, anúncios nem coleta de dados. Ele só acessa a internet para:\n\n• Open-Meteo (open-meteo.com): previsão do tempo, qualidade do ar e busca de cidades. Recebe as coordenadas ou o nome buscado.\n\n• ipwho.is e ipapi.co: descobrir a cidade pelo IP, só com a localização automática ligada, no máximo a cada 12 horas.\n\n• GitHub (github.com/korsarts/tv-launcher): consultar e baixar versões novas do launcher. Dá para desligar a verificação automática em Sobre.\n\nTodas as conexões usam HTTPS.</string>
-    <string name="changelog_text">1.11.0\nAtualização pelo próprio launcher e nova tela Sobre.\n\n1.10.0\nProtetor de tela com o fundo dinâmico, relógio e clima.\n\n1.9.0\nStatus de rede, espaço livre e RAM no topo.\n\n1.8.0\nBusca de apps e tamanho dos cards.\n\n1.7.0\nAvisos de chuva, qualidade do ar, índice UV, sol e lua.\n\n1.6.0\nIntervalo da atualização automática do clima.\n\n1.5.0\nSeis estilos de fundo.\n\n1.4.0\nDegradê mais suave e opção de desligar o fundo dinâmico.\n\n1.3.0\nFundo de céu dinâmico, ícones por hora do dia e botão de atualizar o clima.\n\n1.2.0\nWidget de clima.\n\n1.1.0\nNovo visual: favoritos embaixo, grade em página própria e painel lateral.\n\n1.0.0\nPrimeira versão.</string>
+    <string name="changelog_text">1.12.0\nUmidade, vento, qualidade do ar e UV se revezam numa linha só.\n\n1.11.0\nAtualização pelo próprio launcher e nova tela Sobre.\n\n1.10.0\nProtetor de tela com o fundo dinâmico, relógio e clima.\n\n1.9.0\nStatus de rede, espaço livre e RAM no topo.\n\n1.8.0\nBusca de apps e tamanho dos cards.\n\n1.7.0\nAvisos de chuva, qualidade do ar, índice UV, sol e lua.\n\n1.6.0\nIntervalo da atualização automática do clima.\n\n1.5.0\nSeis estilos de fundo.\n\n1.4.0\nDegradê mais suave e opção de desligar o fundo dinâmico.\n\n1.3.0\nFundo de céu dinâmico, ícones por hora do dia e botão de atualizar o clima.\n\n1.2.0\nWidget de clima.\n\n1.1.0\nNovo visual: favoritos embaixo, grade em página própria e painel lateral.\n\n1.0.0\nPrimeira versão.</string>
 
     <!-- Atualização do launcher -->
     <string name="update_badge">Nova versão disponível</string>
@@ -107,7 +107,8 @@
     <string name="weather_temp">%1$d°</string>
     <string name="weather_feels">Sensação %1$d° · Mín %2$d° · Máx %3$d°</string>
     <string name="weather_feels_only">Sensação %1$d°</string>
-    <string name="weather_details">Umidade %1$d%% · Vento %2$d km/h</string>
+    <string name="weather_humidity">Umidade %1$d%%</string>
+    <string name="weather_wind">Vento %1$d km/h</string>
     <string name="weather_updated">Atualizado às %1$s</string>
     <string name="weather_precip">%1$d%%</string>
     <string name="weather_loading">Carregando previsão do tempo…</string>
