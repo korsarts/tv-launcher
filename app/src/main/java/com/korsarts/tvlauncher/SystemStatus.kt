@@ -2,6 +2,7 @@ package com.korsarts.tvlauncher
 
 import android.app.ActivityManager
 import android.content.Context
+import android.content.res.ColorStateList
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -18,12 +19,17 @@ import android.widget.ImageView
 import android.widget.TextView
 
 /**
- * Indicadores do topo: rede (Wi-Fi com nível de sinal, cabo ou sem internet), espaço livre e RAM
- * livre. Só observa a rede entre [start] e [stop] (launcher na tela).
+ * Indicadores do topo: rede (Wi-Fi com nível de sinal, cabo ou sem internet) no botão fixo
+ * [netIcon], e espaço livre e RAM livre no [group], que pode ser escondido. Só observa a rede entre
+ * [start] e [stop] (launcher na tela).
  *
  * [onBackOnline] roda quando a internet volta depois de ter caído.
  */
-class SystemStatus(private val group: View, private val onBackOnline: () -> Unit) {
+class SystemStatus(
+    private val group: View,
+    private val netIcon: ImageView,
+    private val onBackOnline: () -> Unit,
+) {
 
     enum class Net { WIFI, ETHERNET, OTHER, OFFLINE }
 
@@ -39,7 +45,6 @@ class SystemStatus(private val group: View, private val onBackOnline: () -> Unit
     )
 
     private val context: Context = group.context
-    private val netIcon: ImageView = group.findViewById(R.id.status_net)
     private val netLabel: TextView = group.findViewById(R.id.status_offline)
     private val text: TextView = group.findViewById(R.id.status_text)
     private val main = Handler(Looper.getMainLooper())
@@ -52,7 +57,11 @@ class SystemStatus(private val group: View, private val onBackOnline: () -> Unit
     /** null = ainda não sabemos (primeira leitura não conta como "voltou"). */
     private var wasOnline: Boolean? = null
 
-    @Suppress("DEPRECATION") // getColor(int): única versão disponível na API 21
+    @Suppress("DEPRECATION") // getColorStateList(int)/getColor(int): únicas versões na API 21
+    private val netNormalTint: ColorStateList = context.resources.getColorStateList(R.color.top_button_tint)
+    @Suppress("DEPRECATION")
+    private val netAlertTint: ColorStateList = context.resources.getColorStateList(R.color.top_button_alert_tint)
+    @Suppress("DEPRECATION")
     private val normalColor = context.resources.getColor(R.color.text_tertiary)
     @Suppress("DEPRECATION")
     private val alertColor = context.resources.getColor(R.color.alert_text)
@@ -99,7 +108,6 @@ class SystemStatus(private val group: View, private val onBackOnline: () -> Unit
         val online = s.net != Net.OFFLINE
         if (online && wasOnline == false) onBackOnline()
         wasOnline = online
-        if (group.visibility != View.VISIBLE) return
 
         netIcon.setImageResource(
             when (s.net) {
@@ -113,8 +121,10 @@ class SystemStatus(private val group: View, private val onBackOnline: () -> Unit
                 Net.OTHER -> R.drawable.ic_wifi_3
             }
         )
-        netIcon.setColorFilter(if (online) normalColor else alertColor)
+        netIcon.imageTintList = if (online) netNormalTint else netAlertTint
         netIcon.contentDescription = context.getString(netLabel(s.net))
+
+        if (group.visibility != View.VISIBLE) return
         netLabel.visibility = if (online) View.GONE else View.VISIBLE
 
         text.text = context.getString(

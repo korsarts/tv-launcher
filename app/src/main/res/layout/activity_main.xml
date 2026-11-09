@@ -68,13 +68,13 @@
                     android:textSize="12sp"
                     android:visibility="gone" />
 
-                <!-- Status do sistema: espaço e RAM livres + rede. Não focável. -->
+                <!-- Status do sistema: espaço e RAM livres + aviso de sem internet. Não focável. -->
                 <LinearLayout
                     android:id="@+id/status_group"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:layout_marginEnd="16dp"
+                    android:layout_marginEnd="12dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -97,15 +97,15 @@
                         android:textColor="@color/alert_text"
                         android:textSize="12sp"
                         android:visibility="gone" />
-
-                    <!-- A descrição (tipo de rede) é posta no código, junto com o ícone. -->
-                    <ImageView
-                        android:id="@+id/status_net"
-                        tools:ignore="ContentDescription"
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:layout_marginStart="10dp" />
                 </LinearLayout>
+
+                <!-- Rede: sempre visível; abre as configurações de rede do sistema.
+                     A descrição (tipo de rede) é posta no código, junto com o ícone. -->
+                <ImageButton
+                    android:id="@+id/btn_network"
+                    style="@style/TopButton"
+                    android:layout_marginEnd="8dp"
+                    tools:ignore="ContentDescription" />
 
                 <ImageButton
                     android:id="@+id/btn_search"

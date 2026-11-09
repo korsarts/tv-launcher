@@ -58,7 +58,7 @@
     <string name="opt_system">Sistema</string>
     <string name="opt_system_hint">Rede, armazenamento e memória</string>
     <string name="opt_status_show">Mostrar status no topo</string>
-    <string name="opt_status_show_hint">Rede, espaço livre e RAM livre</string>
+    <string name="opt_status_show_hint">Espaço livre, RAM livre e aviso de sem internet</string>
     <string name="opt_storage">Gerenciar armazenamento</string>
     <string name="opt_storage_hint">Abre a tela do Android para liberar espaço</string>
     <string name="system_body">Rede: %1$s\nArmazenamento: %2$s livres de %3$s\nMemória RAM: %4$s livres de %5$s</string>

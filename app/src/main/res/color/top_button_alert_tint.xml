@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Botão do topo em alerta (ex.: sem internet): vermelho, mas com o contraste normal ao focar. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/on_focus" android:state_focused="true" />
+    <item android:color="@color/alert_text" />
+</selector>

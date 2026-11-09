@@ -21,8 +21,9 @@ Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick
   aparecem enquanto você digita, sem diferenciar maiúsculas nem acentos
 - **Tamanho dos cards:** grandes, médios ou pequenos (4, 5 ou 6 por linha na grade; os favoritos
   acompanham), em *Opções do launcher → Aparência → Tamanho dos cards*
-- **Status do sistema** no topo: rede (Wi-Fi com nível de sinal, cabo ou "Sem internet"), espaço
-  livre e RAM livre. O espaço fica âmbar abaixo de 500 MB. Quando a internet volta, o clima que
+- **Rede** no topo: botão fixo com o tipo de conexão (Wi-Fi com nível de sinal, cabo ou vermelho
+  sem internet) que abre as configurações de rede do Android
+- **Status do sistema** no topo: espaço livre, RAM livre e aviso de "Sem internet". O espaço fica âmbar abaixo de 500 MB. Quando a internet volta, o clima que
   tinha falhado é buscado de novo na hora. *Opções do launcher → Sistema* mostra os totais, liga
   ou desliga os indicadores e abre a tela de armazenamento do Android
 - **Protetor de tela** próprio: o fundo dinâmico em tela cheia com relógio, data e clima (veja

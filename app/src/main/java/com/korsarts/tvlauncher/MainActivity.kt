@@ -166,7 +166,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
             }
         }
 
-        systemStatus = SystemStatus(findViewById(R.id.status_group)) {
+        val networkButton = findViewById<ImageButton>(R.id.btn_network)
+        networkButton.setOnClickListener { openNetworkSettings() }
+        systemStatus = SystemStatus(findViewById(R.id.status_group), networkButton) {
             if (resumed && prefs.weatherEnabled && (weatherData == null || weatherFailed)) refreshWeather()
         }
         systemStatus.setVisible(prefs.showSystemStatus)
@@ -832,6 +834,13 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     private fun openSystemSettings() {
         safeStart(Intent(Settings.ACTION_SETTINGS))
+    }
+
+    /** Wi-Fi/rede do sistema; nas TVs a tela de Wi-Fi é a de rede (inclui cabo). */
+    private fun openNetworkSettings() {
+        if (!safeStart(Intent(Settings.ACTION_WIFI_SETTINGS)) &&
+            !safeStart(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+        ) openSystemSettings()
     }
 
     private fun openPanel(page: SidePanel.Page) {
