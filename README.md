@@ -3,6 +3,14 @@
 Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick (MDZ-24-AA)**
 (Android TV 9, 1 GB de RAM), mas funciona em qualquer Android TV com API 21 ou superior.
 
+![Tela inicial: relógio, clima com previsão por hora e por dia, e favoritos](docs/screenshots/home.jpg)
+
+| Próximas datas | Todos os apps |
+| --- | --- |
+| ![Painel de próximas datas com feriados e contagem de dias](docs/screenshots/holidays.jpg) | ![Grade de todos os aplicativos](docs/screenshots/apps.jpg) |
+| **Menu do app** | **Opções do launcher** |
+| ![Menu lateral do app: favoritar, mover, ocultar, informações, desinstalar](docs/screenshots/menu.jpg) | ![Painel de opções do launcher](docs/screenshots/settings.jpg) |
+
 - APK de ~310 KB, sem Leanback/Compose/AppCompat: só `Activity` + `RecyclerView`
 - Relógio e data, **widget de clima**, linha de **Favoritos** (ordenável) e grade de **todos os apps**
 - Usa o banner 16:9 dos apps de TV; apps de celular (sideload) aparecem com ícone e nome
