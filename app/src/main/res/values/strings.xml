@@ -45,6 +45,8 @@
     <string name="weather_unavailable">Previsão do tempo indisponível. Verifique a conexão.</string>
     <string name="weather_no_location">Não foi possível detectar a localização. Defina a cidade em Opções → Clima.</string>
 
+    <string name="opt_sky">Fundo dinâmico</string>
+    <string name="opt_sky_hint">Céu que muda com a hora e o clima</string>
     <string name="opt_weather">Clima</string>
     <string name="opt_weather_hint">Widget, cidade e atualização</string>
     <string name="opt_weather_show">Mostrar widget de clima</string>

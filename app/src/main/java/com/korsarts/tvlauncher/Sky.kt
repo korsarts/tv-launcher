@@ -35,44 +35,55 @@ enum class DayPhase {
 }
 
 /**
- * Estado do céu num instante: 4 paradas do degradê vertical (topo, alto, horizonte, base) e um
- * brilho radial (sol ou lua). Tudo interpolável, para transições suaves.
+ * Estado do céu num instante: degradê diagonal de 3 cores (claro no alto à esquerda, escuro
+ * embaixo à direita), duas manchas elípticas de cor (horizonte e alto do céu, estilo "mesh
+ * gradient") e o brilho do sol/lua. Tudo interpolável, para transições suaves.
  */
 class SkyState(
     val top: Int,
-    val upper: Int,
-    val horizon: Int,
+    val mid: Int,
     val bottom: Int,
+    /** Mancha baixa (horizonte), segue o sol na horizontal. */
+    val horizon: Int,
+    /** Mancha alta, do lado oposto. */
+    val accent: Int,
     val glow: Int,
     /** 0..1 */
     val glowAlpha: Float,
-    /** Posição do brilho em fração da largura/altura. */
+    /** Posições em fração da largura/altura. */
     val glowX: Float,
     val glowY: Float,
+    val sunX: Float,
 ) {
     fun lerp(o: SkyState, t: Float) = SkyState(
-        mix(top, o.top, t), mix(upper, o.upper, t), mix(horizon, o.horizon, t), mix(bottom, o.bottom, t),
-        mix(glow, o.glow, t), glowAlpha + (o.glowAlpha - glowAlpha) * t,
-        glowX + (o.glowX - glowX) * t, glowY + (o.glowY - glowY) * t,
+        mix(top, o.top, t), mix(mid, o.mid, t), mix(bottom, o.bottom, t),
+        mix(horizon, o.horizon, t), mix(accent, o.accent, t), mix(glow, o.glow, t),
+        lerpF(glowAlpha, o.glowAlpha, t), lerpF(glowX, o.glowX, t), lerpF(glowY, o.glowY, t), lerpF(sunX, o.sunX, t),
     )
 
     companion object {
         private const val MIN = 60_000L
-        private const val HOUR = 60 * MIN
+        private const val DAY = 24 * 60 * MIN
 
-        private class Key(val top: Int, val upper: Int, val horizon: Int, val bottom: Int, val glow: Int, val alpha: Float)
+        /** top, mid, bottom, horizon, accent, glow */
+        private class Key(vararg val c: Int, val alpha: Float)
 
-        private val NIGHT = Key(0xFF050915.toInt(), 0xFF0C1631.toInt(), 0xFF1A2850.toInt(), 0xFF04060B.toInt(), 0xFF6F86C8.toInt(), 0.12f)
-        private val ASTRO = Key(0xFF0A1130.toInt(), 0xFF1C2250.toInt(), 0xFF453463.toInt(), 0xFF06060D.toInt(), 0xFFB07AA8.toInt(), 0.18f)
-        private val SUNRISE = Key(0xFF1A2A58.toInt(), 0xFF4E4277.toInt(), 0xFFB8634F.toInt(), 0xFF100A12.toInt(), 0xFFFFA060.toInt(), 0.45f)
-        private val MORNING = Key(0xFF163C6E.toInt(), 0xFF27598C.toInt(), 0xFF5683AA.toInt(), 0xFF09121F.toInt(), 0xFFFFE0A0.toInt(), 0.26f)
-        private val MIDDAY = Key(0xFF10376A.toInt(), 0xFF1D558E.toInt(), 0xFF3F78AD.toInt(), 0xFF08111E.toInt(), 0xFFFFF2CC.toInt(), 0.22f)
-        private val AFTERNOON = Key(0xFF153668.toInt(), 0xFF305A88.toInt(), 0xFFB88A55.toInt(), 0xFF0D1019.toInt(), 0xFFFFC070.toInt(), 0.36f)
-        private val SUNSET = Key(0xFF201B45.toInt(), 0xFF62325C.toInt(), 0xFFC25A3B.toInt(), 0xFF12090E.toInt(), 0xFFFF7A45.toInt(), 0.5f)
-        private val DUSK = Key(0xFF0D1232.toInt(), 0xFF272152.toInt(), 0xFF552C58.toInt(), 0xFF07060C.toInt(), 0xFFB0507A.toInt(), 0.2f)
+        private fun k(vararg c: Long, alpha: Float) = Key(*IntArray(c.size) { c[it].toInt() }, alpha = alpha)
 
-        /** Fundo escuro neutro (igual ao tema): ponto de partida da entrada. */
-        val BLANK = SkyState(0xFF0B0D14.toInt(), 0xFF0B0D14.toInt(), 0xFF0B0D14.toInt(), 0xFF08090D.toInt(), 0, 0f, 0.5f, 0.5f)
+        private val NIGHT = k(0xFF0A0F24, 0xFF0B1330, 0xFF06070F, 0xFF1F2A5C, 0xFF123049, 0xFF8FA2E6, alpha = 0.12f)
+        private val ASTRO = k(0xFF12153A, 0xFF1A1C45, 0xFF08070F, 0xFF4A3470, 0xFF1C2E5C, 0xFFC08AC0, alpha = 0.15f)
+        private val SUNRISE = k(0xFF262C5E, 0xFF3B3A72, 0xFF120D1A, 0xFFE08A6E, 0xFF7A6AB0, 0xFFFFB27A, alpha = 0.32f)
+        private val MORNING = k(0xFF1E4878, 0xFF2C5E92, 0xFF0C1A2C, 0xFF86AECB, 0xFF4E86B4, 0xFFFFE6B0, alpha = 0.15f)
+        private val MIDDAY = k(0xFF1C4478, 0xFF2A5C94, 0xFF0B1A30, 0xFF4A9AB8, 0xFF5B7AC0, 0xFFFFF4D6, alpha = 0.13f)
+        private val AFTERNOON = k(0xFF1E4478, 0xFF355E92, 0xFF121524, 0xFFE0A26A, 0xFF6A7FC0, 0xFFFFD08A, alpha = 0.24f)
+        private val SUNSET = k(0xFF2A2454, 0xFF4A2E64, 0xFF150C16, 0xFFF08A62, 0xFFA0507E, 0xFFFF9466, alpha = 0.32f)
+        private val DUSK = k(0xFF151A44, 0xFF221F50, 0xFF09080F, 0xFF7A4282, 0xFF2E3A78, 0xFFB06A9A, alpha = 0.15f)
+
+        /** Fundo escuro neutro (igual ao tema): ponto de partida da entrada e da saída. */
+        val BLANK = SkyState(
+            0xFF10131C.toInt(), 0xFF0B0D14.toInt(), 0xFF08090D.toInt(), 0xFF0B0D14.toInt(), 0xFF141925.toInt(), 0,
+            0f, 0.5f, 0.5f, 0.5f,
+        )
 
         /** Céu para [nowMs] com nascer/pôr [sunrise]/[sunset] e o tempo atual ([code] WMO, nuvens em %). */
         fun compute(nowMs: Long, sunrise: Long, sunset: Long, code: Int?, cloudCover: Int?): SkyState {
@@ -89,31 +100,37 @@ class SkyState(
                 sunset + 95 * MIN to NIGHT,
             ).sortedBy { it.first }
 
-            var top: Int; var upper: Int; var horizon: Int; var bottom: Int; var glow: Int; var alpha: Float
+            val cols: IntArray
+            var alpha: Float
             val i = keys.indexOfFirst { it.first > nowMs }
             if (i <= 0) {
-                val k = if (i == 0) keys.first().second else keys.last().second
-                top = k.top; upper = k.upper; horizon = k.horizon; bottom = k.bottom; glow = k.glow; alpha = k.alpha
+                val key = if (i == 0) keys.first().second else keys.last().second
+                cols = key.c.copyOf(); alpha = key.alpha
             } else {
                 val (t0, a) = keys[i - 1]
                 val (t1, b) = keys[i]
                 val t = smooth((nowMs - t0).toFloat() / (t1 - t0).coerceAtLeast(1))
-                top = mix(a.top, b.top, t); upper = mix(a.upper, b.upper, t)
-                horizon = mix(a.horizon, b.horizon, t); bottom = mix(a.bottom, b.bottom, t)
-                glow = mix(a.glow, b.glow, t); alpha = a.alpha + (b.alpha - a.alpha) * t
+                cols = IntArray(a.c.size) { mix(a.c[it], b.c[it], t) }
+                alpha = lerpF(a.alpha, b.alpha, t)
             }
 
-            // Brilho: segue o arco do sol entre o amanhecer e o anoitecer; à noite, a lua fica
-            // num ponto fixo. Na troca, o brilho apaga e acende para não "pular".
+            // Sol: arco entre o amanhecer e o anoitecer. À noite o brilho vira a lua num ponto
+            // fixo (apaga e acende na troca); a mancha do horizonte volta devagar de leste a oeste.
             val sunFrom = sunrise - 75 * MIN
             val sunTo = sunset + 75 * MIN
-            val gx: Float; val gy: Float
+            fun arcX(ms: Long) = 0.12f + 0.76f * (ms - sunrise).toFloat() / (sunset - sunrise).coerceAtLeast(1)
+            val gx: Float; val gy: Float; val sx: Float
             if (nowMs in sunFrom until sunTo) {
                 val p = (nowMs - sunrise).toFloat() / (sunset - sunrise).coerceAtLeast(1)
-                gx = 0.12f + 0.76f * p
+                gx = arcX(nowMs)
                 gy = 0.78f - 0.62f * sin(PI * p.coerceIn(0f, 1f)).toFloat()
+                sx = gx
             } else {
                 gx = 0.8f; gy = 0.1f
+                val nightStart = if (nowMs >= sunTo) sunTo else sunTo - DAY
+                val nightEnd = if (nowMs >= sunTo) sunFrom + DAY else sunFrom
+                val q = smooth(((nowMs - nightStart).toFloat() / (nightEnd - nightStart).coerceAtLeast(1)).coerceIn(0f, 1f))
+                sx = lerpF(arcX(sunTo), arcX(sunFrom), q)
             }
             val edge = min(abs(nowMs - sunFrom), abs(nowMs - sunTo)).toFloat() / (25 * MIN)
             alpha *= smooth(edge.coerceIn(0f, 1f))
@@ -128,7 +145,7 @@ class SkyState(
                 c == 2 -> 0.5f
                 else -> 0.9f
             }.let { if (c != null && c >= 45) maxOf(it, 0.8f) else it }
-            var desat = cloud * 0.48f
+            var desat = cloud * 0.5f
             var dark = cloud * 0.14f
             var tint = 0
             var tintAmt = 0f
@@ -140,14 +157,18 @@ class SkyState(
             }
             desat = desat.coerceIn(0f, 0.85f)
             dark = dark.coerceIn(0f, 0.5f)
-            fun weather(col: Int) = mix(darken(desaturate(col, desat), dark), tint, tintAmt)
-            top = weather(top); upper = weather(upper); horizon = weather(horizon); bottom = weather(bottom)
+            for (j in 0 until 5) cols[j] = mix(darken(desaturate(cols[j], desat), dark), tint, tintAmt)
             alpha *= 1f - cloud * 0.8f
 
-            return SkyState(top, upper, horizon, bottom, glow, alpha, gx, gy)
+            return SkyState(
+                cols[0], cols[1], cols[2], cols[3], cols[4], cols[5],
+                alpha, gx, gy, sx.coerceIn(0.1f, 0.9f),
+            )
         }
 
         private fun smooth(t: Float) = t * t * (3 - 2 * t)
+
+        private fun lerpF(a: Float, b: Float, t: Float) = a + (b - a) * t
 
         fun mix(a: Int, b: Int, t: Float): Int {
             if (t <= 0f) return a
@@ -170,7 +191,7 @@ class SkyState(
 
 /**
  * Fundo do launcher. O céu é desenhado num bitmap pequeno (192x108) e esticado com filtro
- * bilinear: na tela vira um único quad texturizado, o mesmo custo de GPU do degradê antigo,
+ * bilinear: na tela vira um único quad texturizado, o mesmo custo de GPU de um degradê simples,
  * por mais camadas que o céu tenha. Só é redesenhado quando o estado muda.
  */
 class SkyDrawable(initial: SkyState) : Drawable() {
@@ -178,9 +199,20 @@ class SkyDrawable(initial: SkyState) : Drawable() {
     private val bitmap = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
     private val bitmapCanvas = Canvas(bitmap)
     private val drawPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG)
-    private val paint = Paint(Paint.DITHER_FLAG)
+    private val paint = Paint(Paint.DITHER_FLAG or Paint.ANTI_ALIAS_FLAG)
+    private val baseColors = IntArray(BASE_STOPS)
+    private val basePositions = FloatArray(BASE_STOPS) { it / (BASE_STOPS - 1f) }
+    private val blobColors = IntArray(FALLOFF.size)
     private var current = initial
     private var animator: ValueAnimator? = null
+
+    /** Véu de leitura: leve no topo (relógio), mais forte embaixo (favoritos). Fixo. */
+    private val veil = LinearGradient(
+        0f, 0f, 0f, H.toFloat(),
+        intArrayOf(0x2E000000, 0, 0, 0x80000000.toInt()),
+        floatArrayOf(0f, 0.18f, 0.62f, 1f),
+        Shader.TileMode.CLAMP,
+    )
 
     init {
         render(current)
@@ -197,7 +229,7 @@ class SkyDrawable(initial: SkyState) : Drawable() {
         val from = current
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = durationMs
-            interpolator = LinearInterpolator() // a curva já vem do smoothstep abaixo
+            interpolator = LinearInterpolator() // a curva vem do smoothstep abaixo
             addUpdateListener {
                 val t = it.animatedValue as Float
                 current = from.lerp(target, t * t * (3 - 2 * t))
@@ -213,38 +245,46 @@ class SkyDrawable(initial: SkyState) : Drawable() {
     }
 
     private fun render(s: SkyState) {
-        paint.shader = LinearGradient(
-            0f, 0f, 0f, H.toFloat(),
-            intArrayOf(s.top, s.upper, s.horizon, s.bottom),
-            floatArrayOf(0f, 0.4f, 0.74f, 1f),
-            Shader.TileMode.CLAMP,
-        )
-        bitmapCanvas.drawRect(0f, 0f, W.toFloat(), H.toFloat(), paint)
+        val w = W.toFloat()
+        val h = H.toFloat()
 
-        if (s.glowAlpha > 0.005f) {
-            val a = (s.glowAlpha * 255).toInt().coerceIn(0, 255)
-            val center = (s.glow and 0x00FFFFFF) or (a shl 24)
-            val mid = (s.glow and 0x00FFFFFF) or ((a * 0.35f).toInt() shl 24)
-            paint.shader = RadialGradient(
-                s.glowX * W, s.glowY * H, W * 0.55f,
-                intArrayOf(center, mid, 0),
-                floatArrayOf(0f, 0.35f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            bitmapCanvas.drawRect(0f, 0f, W.toFloat(), H.toFloat(), paint)
+        // Base diagonal (~160°): várias paradas com smoothstep, sem "dobra" visível no meio.
+        for (i in 0 until BASE_STOPS) {
+            val t = basePositions[i]
+            baseColors[i] = if (t < 0.5f) {
+                SkyState.mix(s.top, s.mid, smooth(t / 0.5f))
+            } else {
+                SkyState.mix(s.mid, s.bottom, smooth((t - 0.5f) / 0.5f))
+            }
         }
+        paint.shader = LinearGradient(0.3f * w, 0f, 0.7f * w, h, baseColors, basePositions, Shader.TileMode.CLAMP)
+        bitmapCanvas.drawRect(0f, 0f, w, h, paint)
 
-        // Base escura (ancora os favoritos) e véu leve no topo (relógio).
-        paint.shader = LinearGradient(
-            0f, 0f, 0f, H.toFloat(),
-            intArrayOf(0x33000000, 0, 0, 0x8C000000.toInt()),
-            floatArrayOf(0f, 0.22f, 0.6f, 1f),
-            Shader.TileMode.CLAMP,
-        )
-        bitmapCanvas.drawRect(0f, 0f, W.toFloat(), H.toFloat(), paint)
+        // Manchas elípticas: horizonte (embaixo, acompanha o sol) e acento (em cima, oposto).
+        blob(s.horizon, 0.55f, s.sunX * w, 0.95f * h, 0.7f * w, 0.55f)
+        blob(s.accent, 0.42f, (1f - s.sunX * 0.8f) * w, 0.02f * h, 0.6f * w, 0.6f)
+        if (s.glowAlpha > 0.005f) blob(s.glow, s.glowAlpha, s.glowX * w, s.glowY * h, 0.45f * w, 1f)
+
+        paint.shader = veil
+        bitmapCanvas.drawRect(0f, 0f, w, h, paint)
         paint.shader = null
         invalidateSelf()
     }
+
+    /** Mancha radial com queda quase gaussiana, achatada verticalmente por [squash]. */
+    private fun blob(color: Int, alpha: Float, cx: Float, cy: Float, r: Float, squash: Float) {
+        val rgb = color and 0x00FFFFFF
+        for (i in FALLOFF.indices) {
+            blobColors[i] = rgb or ((alpha * FALLOFF[i] * 255).toInt().coerceIn(0, 255) shl 24)
+        }
+        paint.shader = RadialGradient(cx, cy, r, blobColors, FALLOFF_POS, Shader.TileMode.CLAMP)
+        bitmapCanvas.save()
+        bitmapCanvas.scale(1f, squash, cx, cy)
+        bitmapCanvas.drawCircle(cx, cy, r, paint)
+        bitmapCanvas.restore()
+    }
+
+    private fun smooth(t: Float) = t * t * (3 - 2 * t)
 
     override fun draw(canvas: Canvas) {
         canvas.drawBitmap(bitmap, null, bounds, drawPaint)
@@ -259,5 +299,8 @@ class SkyDrawable(initial: SkyState) : Drawable() {
     companion object {
         private const val W = 192
         private const val H = 108
+        private const val BASE_STOPS = 9
+        private val FALLOFF = floatArrayOf(1f, 0.62f, 0.28f, 0.08f, 0f)
+        private val FALLOFF_POS = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
     }
 }

@@ -95,10 +95,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        sky = SkyDrawable(SkyState.BLANK)
-        window.setBackgroundDrawable(sky)
-
         prefs = Prefs(this)
+        sky = SkyDrawable(SkyState.BLANK)
+        if (prefs.skyEnabled) window.setBackgroundDrawable(sky)
         repo = AppRepository(this)
 
         content = findViewById(R.id.content)
@@ -382,8 +381,28 @@ class MainActivity : Activity(), AppAdapter.Listener {
         return now / HOUR_MS * 4 + DayPhase.at(now, rise, set).ordinal
     }
 
+    /** Liga: o céu nasce do fundo escuro. Desliga: escurece e volta ao fundo fixo do tema. */
+    private fun setSkyEnabled(enabled: Boolean) {
+        prefs.skyEnabled = enabled
+        main.removeCallbacks(restoreStaticBackground)
+        if (enabled) {
+            sky.setState(SkyState.BLANK, 0)
+            window.setBackgroundDrawable(sky)
+            updateSky(SKY_CHANGE_MS)
+        } else {
+            sky.setState(SkyState.BLANK, SKY_OFF_MS)
+            main.postDelayed(restoreStaticBackground, SKY_OFF_MS)
+        }
+    }
+
+    private val restoreStaticBackground = Runnable {
+        sky.stop()
+        if (!prefs.skyEnabled) window.setBackgroundDrawableResource(R.drawable.bg_window)
+    }
+
     /** Recalcula o céu para agora (com o clima, se houver) e anima até ele. */
     private fun updateSky(durationMs: Long) {
+        if (!prefs.skyEnabled) return
         val now = System.currentTimeMillis()
         val data = weatherData?.takeIf { prefs.weatherEnabled }
         val (rise, set) = data?.sunTimes(now) ?: localSunTimes(now)
@@ -702,6 +721,12 @@ class MainActivity : Activity(), AppAdapter.Listener {
                 }
             },
             SidePanel.Item(
+                R.drawable.ic_gradient, getString(R.string.opt_sky), getString(R.string.opt_sky_hint),
+                checked = { prefs.skyEnabled },
+            ) {
+                setSkyEnabled(!prefs.skyEnabled)
+            },
+            SidePanel.Item(
                 R.drawable.ic_weather, getString(R.string.opt_weather), getString(R.string.opt_weather_hint),
                 keepOpen = true,
             ) {
@@ -800,6 +825,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         /** Mudança de clima/entrada: transição lenta, quase imperceptível como corte. */
         const val SKY_CHANGE_MS = 2500L
         const val SPIN_MS = 900L
+        const val SKY_OFF_MS = 700L
         const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
         const val WEATHER_RETRY_MS = 5 * 60 * 1000L
     }

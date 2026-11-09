@@ -23,11 +23,12 @@ dias, com a chance de chuva quando houver.
   provedor roteia por outra cidade), use **Opções do launcher → Clima → Escolher cidade**: selecione
   o campo, digite com o teclado da TV, confirme e escolha na lista. *Usar localização automática*
   volta ao modo por IP.
-- **Fundo dinâmico:** degradê de céu que acompanha a hora do dia (noite, aurora, nascer do sol,
+- **Fundo dinâmico:** degradê diagonal suave com manchas de cor elípticas (estilo mesh gradient) que acompanha a hora do dia (noite, aurora, nascer do sol,
   manhã, meio-dia, tarde, pôr do sol, crepúsculo), calculado com o nascer/pôr do sol reais da
   cidade, e o clima atual (nuvens dessaturam e escurecem; chuva, tempestade, neblina e neve dão um
   tom próprio). As mudanças são animadas. O céu é desenhado num bitmap de 192x108 esticado com
-  filtro, então custa na GPU o mesmo que um degradê simples.
+  filtro, então custa na GPU o mesmo que um degradê simples. Liga/desliga em
+  *Opções do launcher → Fundo dinâmico* (desligado volta ao fundo escuro fixo).
 - **Ícones por hora do dia:** amanhecer e pôr do sol têm ícones próprios, a noite mostra lua e
   estrelas, e chuva/garoa/neve/neblina leves mostram o sol, o sol baixo ou a lua atrás da nuvem.
   Vale para o tempo atual e para as próximas horas.

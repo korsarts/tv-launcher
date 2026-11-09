@@ -31,6 +31,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_REDIRECT, true)
         set(value) = sp.edit().putBoolean(KEY_REDIRECT, value).apply()
 
+    /** Fundo de céu dinâmico (hora do dia + clima); desligado = fundo escuro fixo. */
+    var skyEnabled: Boolean
+        get() = sp.getBoolean(KEY_SKY_ENABLED, true)
+        set(value) = sp.edit().putBoolean(KEY_SKY_ENABLED, value).apply()
+
     var weatherEnabled: Boolean
         get() = sp.getBoolean(KEY_WEATHER_ENABLED, true)
         set(value) = sp.edit().putBoolean(KEY_WEATHER_ENABLED, value).apply()
@@ -92,6 +97,7 @@ class Prefs(context: Context) {
         private const val KEY_SHOW_HIDDEN = "show_hidden"
         private const val KEY_REDIRECT = "redirect_stock"
         private const val KEY_WEATHER_ENABLED = "weather_enabled"
+        private const val KEY_SKY_ENABLED = "sky_enabled"
         private const val KEY_WEATHER_NAME = "weather_name"
         private const val KEY_WEATHER_REGION = "weather_region"
         private const val KEY_WEATHER_LAT = "weather_lat"
