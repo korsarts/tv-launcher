@@ -24,6 +24,10 @@ class WeatherData(
     val current: Current,
     private val hours: List<Hour>,
     private val days: List<Day>,
+    /** Latitude da cidade (hemisfério sul espelha a lua); 0 em caches antigos. */
+    val latitude: Double = 0.0,
+    /** Qualidade do ar; null se a consulta falhou (ela é opcional). */
+    val air: AirQuality? = null,
 ) {
     class Current(
         val temp: Double,
@@ -34,10 +38,28 @@ class WeatherData(
         val isDay: Boolean,
         /** Cobertura de nuvens em % (ausente em caches antigos). */
         val cloudCover: Int? = null,
+        /** Índice UV agora (ausente em caches antigos). */
+        val uv: Double? = null,
     )
 
+    /** [usAqi]: índice de qualidade do ar na escala dos EUA (0 a 500). */
+    class AirQuality(val usAqi: Int)
+
+    /** Aviso de tempo ruim nas próximas horas. [time] em segundos (início da hora). */
+    class Alert(val kind: Kind, val time: Long, val precip: Int?) {
+        enum class Kind { STORM, HEAVY_RAIN, RAIN }
+    }
+
     /** [time] em segundos (início da hora). */
-    class Hour(val time: Long, val temp: Double, val code: Int, val isDay: Boolean, val precip: Int?)
+    class Hour(
+        val time: Long,
+        val temp: Double,
+        val code: Int,
+        val isDay: Boolean,
+        val precip: Int?,
+        /** Chuva na hora, em mm (ausente em caches antigos). */
+        val precipMm: Double? = null,
+    )
 
     /** [time] em segundos (meia-noite local do dia). */
     class Day(
@@ -82,13 +104,41 @@ class WeatherData(
         return days.firstOrNull { now >= it.time && now < it.time + DAY_SECONDS }
     }
 
+    /**
+     * O aviso mais grave das próximas [ALERT_HOURS] horas: tempestade, depois chuva forte, depois
+     * chuva provável (esta só nas próximas [RAIN_HOURS] horas e se não estiver chovendo agora).
+     */
+    fun alert(nowMs: Long): Alert? {
+        val now = nowMs / 1000
+        val next = hours.filter { it.time + HOUR_SECONDS > now && it.time <= now + ALERT_HOURS * HOUR_SECONDS }
+        next.firstOrNull { it.code in STORM_CODES }
+            ?.let { return Alert(Alert.Kind.STORM, it.time, it.precip) }
+        next.firstOrNull { it.code in HEAVY_CODES || (it.precipMm ?: 0.0) >= HEAVY_MM }
+            ?.let { return Alert(Alert.Kind.HEAVY_RAIN, it.time, it.precip) }
+        if (current.code in WET_CODES) return null
+        return next.firstOrNull { it.time > now && it.time <= now + RAIN_HOURS * HOUR_SECONDS && (it.precip ?: 0) >= RAIN_CHANCE }
+            ?.let { Alert(Alert.Kind.RAIN, it.time, it.precip) }
+    }
+
     companion object {
         private const val DAY_SECONDS = 24 * 60 * 60L
+        private const val HOUR_SECONDS = 60 * 60L
+        private const val ALERT_HOURS = 12
+        private const val RAIN_HOURS = 3
+        private const val RAIN_CHANCE = 70
+        private const val HEAVY_MM = 7.5
+        private val STORM_CODES = setOf(95, 96, 99)
+        private val HEAVY_CODES = setOf(65, 67, 82)
+        /** Já está chovendo/nevando: não faz sentido avisar "chuva provável". */
+        private val WET_CODES = setOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99)
         private const val HOUR_MS = 60 * 60 * 1000L
         private const val DAY_MS = 24 * HOUR_MS
 
-        /** Decodifica a resposta de `/v1/forecast` pedida com `timeformat=unixtime`. */
-        fun parse(json: String, place: String, fetchedAt: Long): WeatherData {
+        /**
+         * Decodifica a resposta de `/v1/forecast` pedida com `timeformat=unixtime`. [airJson] é a
+         * resposta (opcional) de `/v1/air-quality`; se estiver ausente ou inválida, fica sem o ar.
+         */
+        fun parse(json: String, place: String, fetchedAt: Long, airJson: String? = null): WeatherData {
             val root = JSONObject(json)
             val tz = TimeZone.getTimeZone(root.optString("timezone", "GMT"))
 
@@ -101,6 +151,7 @@ class WeatherData(
                 code = c.optInt("weather_code", 0),
                 isDay = c.optInt("is_day", 1) == 1,
                 cloudCover = if (c.has("cloud_cover") && !c.isNull("cloud_cover")) c.optInt("cloud_cover") else null,
+                uv = if (c.has("uv_index") && !c.isNull("uv_index")) c.optDouble("uv_index") else null,
             )
 
             val h = root.getJSONObject("hourly")
@@ -109,6 +160,7 @@ class WeatherData(
             val hCode = h.getJSONArray("weather_code")
             val hDay = h.optJSONArray("is_day")
             val hPrecip = h.optJSONArray("precipitation_probability")
+            val hMm = h.optJSONArray("precipitation")
             val hours = (0 until hTime.length()).mapNotNull { i ->
                 if (hTemp.isNull(i)) return@mapNotNull null
                 Hour(
@@ -117,6 +169,7 @@ class WeatherData(
                     code = hCode.optInt(i, 0),
                     isDay = hDay?.optInt(i, 1) != 0,
                     precip = hPrecip.intOrNull(i),
+                    precipMm = if (hMm == null || i >= hMm.length() || hMm.isNull(i)) null else hMm.optDouble(i),
                 )
             }
 
@@ -141,7 +194,12 @@ class WeatherData(
                 )
             }
 
-            return WeatherData(place, tz, fetchedAt, current, hours, days)
+            val air = runCatching {
+                val a = JSONObject(airJson ?: return@runCatching null).getJSONObject("current")
+                if (a.isNull("us_aqi")) null else AirQuality(Math.round(a.getDouble("us_aqi")).toInt())
+            }.getOrNull()
+
+            return WeatherData(place, tz, fetchedAt, current, hours, days, root.optDouble("latitude", 0.0), air)
         }
 
         private fun JSONArray?.longOrNull(i: Int): Long? =
@@ -215,5 +273,25 @@ object WeatherCode {
         95 -> R.string.wmo_thunderstorm
         96, 99 -> R.string.wmo_thunderstorm_hail
         else -> R.string.wmo_unknown
+    }
+}
+
+/** Faixas do índice de qualidade do ar (escala dos EUA) e do índice UV. */
+object WeatherScale {
+    fun aqiLabel(aqi: Int): Int = when {
+        aqi <= 50 -> R.string.aqi_good
+        aqi <= 100 -> R.string.aqi_moderate
+        aqi <= 150 -> R.string.aqi_sensitive
+        aqi <= 200 -> R.string.aqi_unhealthy
+        aqi <= 300 -> R.string.aqi_very_unhealthy
+        else -> R.string.aqi_hazardous
+    }
+
+    fun uvLabel(uv: Int): Int = when {
+        uv < 3 -> R.string.uv_low
+        uv < 6 -> R.string.uv_moderate
+        uv < 8 -> R.string.uv_high
+        uv < 11 -> R.string.uv_very_high
+        else -> R.string.uv_extreme
     }
 }

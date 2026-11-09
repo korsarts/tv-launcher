@@ -51,4 +51,10 @@
     <color name="weather_cloud_night_dark">#FF5D6684</color>
     <color name="weather_bolt">#FFFFC94D</color>
     <color name="weather_star">#FFFFF2C2</color>
+    <!-- Parte escura do disco da lua -->
+    <color name="weather_moon_dark">#FF3A4258</color>
+
+    <!-- Avisos (chuva forte, sem internet, pouco espaço): âmbar sobre véu âmbar -->
+    <color name="alert_text">#FFFFD67A</color>
+    <color name="alert_bg">#33FFC94D</color>
 </resources>

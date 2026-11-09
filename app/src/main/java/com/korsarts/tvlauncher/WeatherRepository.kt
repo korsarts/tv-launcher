@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
 
 /**
  * Busca e cache da previsão. Todas as fontes são HTTPS e sem chave:
- * - Open-Meteo (previsão e busca de cidade);
+ * - Open-Meteo (previsão, qualidade do ar e busca de cidade);
  * - ipwho.is / ipapi.co (localização aproximada pelo IP, só no modo automático).
  *
  * Roda num executor próprio para que um timeout de rede não atrase a carga da lista de apps.
@@ -44,7 +44,10 @@ class WeatherRepository(context: Context, private val prefs: Prefs) {
         executor.execute {
             val data = runCatching {
                 val json = sp.getString(KEY_JSON, null) ?: return@runCatching null
-                WeatherData.parse(json, sp.getString(KEY_PLACE, "").orEmpty(), sp.getLong(KEY_FETCHED_AT, 0))
+                WeatherData.parse(
+                    json, sp.getString(KEY_PLACE, "").orEmpty(), sp.getLong(KEY_FETCHED_AT, 0),
+                    sp.getString(KEY_AIR_JSON, null),
+                )
             }.getOrNull()
             deliver { callback(data) }
         }
@@ -77,7 +80,7 @@ class WeatherRepository(context: Context, private val prefs: Prefs) {
     /** Local mudou: o cache não serve mais e qualquer busca em andamento é descartada. */
     fun clearCache() {
         generation++
-        sp.edit().remove(KEY_JSON).remove(KEY_PLACE).remove(KEY_FETCHED_AT).apply()
+        sp.edit().remove(KEY_JSON).remove(KEY_AIR_JSON).remove(KEY_PLACE).remove(KEY_FETCHED_AT).apply()
     }
 
     /** Nome da cidade detectada pelo IP na última vez, se houver. */
@@ -97,15 +100,26 @@ class WeatherRepository(context: Context, private val prefs: Prefs) {
     private fun fetch(location: WeatherLocation): WeatherData {
         val url = "https://api.open-meteo.com/v1/forecast" +
             "?latitude=${coord(location.lat)}&longitude=${coord(location.lon)}" +
-            "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m,cloud_cover" +
-            "&hourly=temperature_2m,weather_code,precipitation_probability,is_day" +
+            "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m,cloud_cover,uv_index" +
+            "&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,is_day" +
             "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
             "&timezone=auto&timeformat=unixtime&forecast_days=7"
         val json = get(url)
+        // Qualidade do ar: outro serviço da Open-Meteo. Opcional, com timeout curto: se falhar,
+        // a previsão aparece sem essa linha.
+        val airJson = runCatching {
+            get(
+                "https://air-quality-api.open-meteo.com/v1/air-quality" +
+                    "?latitude=${coord(location.lat)}&longitude=${coord(location.lon)}" +
+                    "&current=us_aqi&timezone=auto&timeformat=unixtime",
+                AIR_TIMEOUT_MS,
+            )
+        }.getOrNull()
         val now = System.currentTimeMillis()
-        val data = WeatherData.parse(json, location.name, now) // valida antes de salvar
+        val data = WeatherData.parse(json, location.name, now, airJson) // valida antes de salvar
         sp.edit()
             .putString(KEY_JSON, json)
+            .putString(KEY_AIR_JSON, airJson)
             .putString(KEY_PLACE, location.name)
             .putLong(KEY_FETCHED_AT, now)
             .apply()
@@ -169,11 +183,11 @@ class WeatherRepository(context: Context, private val prefs: Prefs) {
         }
     }
 
-    private fun get(url: String): String {
+    private fun get(url: String, timeoutMs: Int = TIMEOUT_MS): String {
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
-            conn.connectTimeout = TIMEOUT_MS
-            conn.readTimeout = TIMEOUT_MS
+            conn.connectTimeout = timeoutMs
+            conn.readTimeout = timeoutMs
             conn.setRequestProperty("Accept", "application/json")
             conn.setRequestProperty("User-Agent", "TVLauncher (Android)")
             val code = conn.responseCode
@@ -189,9 +203,11 @@ class WeatherRepository(context: Context, private val prefs: Prefs) {
 
     companion object {
         private const val TIMEOUT_MS = 8000
+        private const val AIR_TIMEOUT_MS = 4000
         private const val IP_TTL_MS = 12 * 60 * 60 * 1000L
 
         private const val KEY_JSON = "json"
+        private const val KEY_AIR_JSON = "air_json"
         private const val KEY_PLACE = "place"
         private const val KEY_FETCHED_AT = "fetched_at"
         private const val KEY_IP_NAME = "ip_name"

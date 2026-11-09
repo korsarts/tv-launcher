@@ -35,13 +35,19 @@ dias, com a chance de chuva quando houver.
 - **Ícones por hora do dia:** amanhecer e pôr do sol têm ícones próprios, a noite mostra lua e
   estrelas, e chuva/garoa/neve/neblina leves mostram o sol, o sol baixo ou a lua atrás da nuvem.
   Vale para o tempo atual e para as próximas horas.
+- **Avisos:** uma faixa âmbar aparece quando há tempestade ou chuva forte nas próximas 12 horas,
+  ou chuva provável (70% ou mais) nas próximas 3 horas.
+- **Qualidade do ar e UV:** índice de qualidade do ar (escala dos EUA) e índice UV de agora, com a
+  faixa por extenso. Se a consulta do ar falhar, a previsão aparece sem ela.
+- **Sol e lua:** horários do nascer e do pôr do sol e a fase da lua (calculada no aparelho; o
+  disco é espelhado no hemisfério sul).
 - **Atualizar na hora:** botão ⟳ ao lado das opções no topo (gira enquanto busca).
 - **Atualização:** a cada 30 min (ajustável em *Clima → Atualização automática*: 15 min a 6 h, ou
   desligada para atualizar só pelo botão de atualizar) enquanto o launcher está na tela (5 min após uma falha). A última
   previsão fica salva e aparece na hora ao ligar a TV, mesmo sem rede.
 - **Desligar:** *Opções do launcher → Clima → Mostrar widget de clima*.
 - **Privacidade / serviços usados** (todos HTTPS, sem conta nem chave):
-  - [Open-Meteo](https://open-meteo.com) para a previsão e a busca de cidades (recebe só as
+  - [Open-Meteo](https://open-meteo.com) para a previsão, a qualidade do ar e a busca de cidades (recebe só as
     coordenadas ou o nome buscado);
   - [ipwho.is](https://ipwho.is) com fallback para [ipapi.co](https://ipapi.co), **apenas no modo
     automático**, para descobrir a cidade pelo IP (consulta no máximo a cada 12 h).

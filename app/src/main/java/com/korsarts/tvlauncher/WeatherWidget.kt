@@ -27,6 +27,19 @@ class WeatherWidget(container: ViewGroup) {
     private val condition: TextView = root.findViewById(R.id.weather_condition)
     private val feels: TextView = root.findViewById(R.id.weather_feels)
     private val details: TextView = root.findViewById(R.id.weather_details)
+    private val alert: TextView = root.findViewById(R.id.weather_alert)
+    private val air: TextView = root.findViewById(R.id.weather_air)
+    private val sun: TextView = root.findViewById(R.id.weather_sun)
+    private val moon: TextView = root.findViewById(R.id.weather_moon)
+    // resources.getColor(int): a versão sem tema é a única disponível na API 21.
+    @Suppress("DEPRECATION")
+    private val moonDisc = MoonDrawable(
+        (14 * context.resources.displayMetrics.density).toInt(),
+        context.resources.getColor(R.color.weather_moon), context.resources.getColor(R.color.weather_moon_dark),
+    ).also {
+        it.setBounds(0, 0, it.intrinsicWidth, it.intrinsicHeight)
+        moon.setCompoundDrawablesRelative(it, null, null, null)
+    }
     private val hourCells = buildCells(root.findViewById(R.id.weather_hours))
     private val dayCells = buildCells(root.findViewById(R.id.weather_days))
 
@@ -87,6 +100,16 @@ class WeatherWidget(container: ViewGroup) {
         // Rótulos no fuso da cidade (pode não ser o do aparelho se a cidade foi escolhida à mão).
         val hourFmt = SimpleDateFormat(if (DateFormat.is24HourFormat(context)) "H'h'" else "h a", ptBr)
             .apply { timeZone = data.timeZone }
+
+        bindAlert(data.alert(nowMs), nowMs, hourFmt)
+        bindAir(data)
+        val clockFmt = DateFormat.getTimeFormat(context).apply { timeZone = data.timeZone }
+        sun.text = context.getString(
+            R.string.weather_sun_times, clockFmt.format(Date(sunrise)), clockFmt.format(Date(sunset)),
+        )
+        val cycle = Moon.cycle(nowMs)
+        moonDisc.set(cycle, southern = data.latitude < 0)
+        moon.setText(Moon.label(cycle))
         val dayFmt = SimpleDateFormat("EEE", ptBr).apply { timeZone = data.timeZone }
 
         hourCells.forEachIndexed { i, cell ->
@@ -115,6 +138,39 @@ class WeatherWidget(container: ViewGroup) {
 
         message.visibility = View.GONE
         if (content.visibility != View.VISIBLE) fadeIn()
+    }
+
+    private fun bindAlert(a: WeatherData.Alert?, nowMs: Long, hourFmt: SimpleDateFormat) {
+        if (a == null) {
+            alert.visibility = View.GONE
+            return
+        }
+        val now = a.time * 1000 <= nowMs // a hora do aviso já começou
+        val at = hourFmt.format(Date(a.time * 1000))
+        val text = when (a.kind) {
+            WeatherData.Alert.Kind.STORM ->
+                if (now) context.getString(R.string.alert_storm_now) else context.getString(R.string.alert_storm, at)
+            WeatherData.Alert.Kind.HEAVY_RAIN ->
+                if (now) context.getString(R.string.alert_heavy_rain_now) else context.getString(R.string.alert_heavy_rain, at)
+            WeatherData.Alert.Kind.RAIN -> context.getString(R.string.alert_rain, at)
+        }
+        alert.text = if (a.precip != null && a.precip > 0) context.getString(R.string.alert_chance, text, a.precip) else text
+        alert.visibility = View.VISIBLE
+    }
+
+    private fun bindAir(data: WeatherData) {
+        val aqi = data.air?.usAqi?.let {
+            context.getString(R.string.weather_air, context.getString(WeatherScale.aqiLabel(it)), it)
+        }
+        val uv = data.current.uv?.r()?.let {
+            context.getString(R.string.weather_uv, it, context.getString(WeatherScale.uvLabel(it)))
+        }
+        val text = when {
+            aqi != null && uv != null -> context.getString(R.string.weather_join, aqi, uv)
+            else -> aqi ?: uv
+        }
+        air.text = text
+        air.visibility = if (text == null) View.GONE else View.VISIBLE
     }
 
     private fun bindPrecip(cell: Cell, precip: Int?) {
