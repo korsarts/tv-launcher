@@ -150,7 +150,8 @@
                 android:layout_height="wrap_content"
                 android:text="@string/favorites" />
 
-            <androidx.recyclerview.widget.RecyclerView
+            <!-- Os favoritos somem em degradê de alpha na borda direita da tela. -->
+            <com.korsarts.tvlauncher.FadingEndRecyclerView
                 android:id="@+id/favorites"
                 style="@style/AppRow"
                 android:layout_width="match_parent"

@@ -12,6 +12,8 @@
     <dimen name="row_padding_v">12dp</dimen>
     <!-- screen_padding_h - card_margin: a borda do card alinha com os títulos -->
     <dimen name="row_padding_h">48dp</dimen>
+    <!-- Comprimento do fade na borda final da fileira de favoritos -->
+    <dimen name="row_fade_length">240dp</dimen>
     <dimen name="top_button_size">44dp</dimen>
     <dimen name="panel_width">360dp</dimen>
     <dimen name="panel_radius">24dp</dimen>
