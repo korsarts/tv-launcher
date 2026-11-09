@@ -125,14 +125,7 @@
                 <ImageButton
                     android:id="@+id/btn_options"
                     style="@style/TopButton"
-                    android:layout_marginEnd="8dp"
                     android:contentDescription="@string/launcher_options"
-                    android:src="@drawable/ic_tune" />
-
-                <ImageButton
-                    android:id="@+id/btn_settings"
-                    style="@style/TopButton"
-                    android:contentDescription="@string/settings"
                     android:src="@drawable/ic_settings" />
             </LinearLayout>
 

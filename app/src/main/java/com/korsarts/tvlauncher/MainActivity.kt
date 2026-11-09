@@ -178,7 +178,6 @@ class MainActivity : Activity(), AppAdapter.Listener {
         // Oferta guardada de uma consulta anterior; some sozinha depois de instalada.
         setUpdate(Updater.Release.fromJson(prefs.pendingUpdate)?.takeIf { updater.isNewer(it) })
 
-        findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
         findViewById<ImageButton>(R.id.btn_search).setOnClickListener { openAppSearch() }
         refreshButton = findViewById(R.id.btn_refresh)

@@ -4,7 +4,6 @@
     <string name="date_format">EEEE, d \'de\' MMMM</string>
     <string name="favorites">Favoritos</string>
     <string name="all_apps">Aplicativos</string>
-    <string name="settings">Configurações</string>
     <string name="launcher_options">Opções do launcher</string>
     <string name="no_favorites">Segure OK (ou aperte MENU) em um app para adicioná-lo aos favoritos</string>
     <string name="all_apps_hint">Todos os aplicativos</string>
