@@ -5,9 +5,15 @@
     <!-- Android TV: sem touchscreen, leanback obrigatório para aparecer como app de TV. -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="true" />
+    <!-- Lemos o nível do Wi-Fi, mas TVs só com cabo continuam atendidas. -->
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
 
     <!-- Widget de clima (Open-Meteo, HTTPS). -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Indicador de rede no topo (tipo de conexão e nível do Wi-Fi). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <!-- Visibilidade de pacotes (API 30+): só precisamos ver apps com activity de launcher. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />

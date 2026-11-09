@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.text.format.Formatter
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -44,6 +45,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
     private lateinit var panel: SidePanel
     private lateinit var weather: WeatherRepository
     private lateinit var weatherWidget: WeatherWidget
+    private lateinit var systemStatus: SystemStatus
     private var spanCount = 1
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -67,6 +69,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     /** Última previsão exibida (do cache ou da rede). */
     private var weatherData: WeatherData? = null
+    /** A última busca falhou: quando a internet voltar, tenta de novo na hora. */
+    private var weatherFailed = false
     private val weatherTick = Runnable { refreshWeather() }
 
     /** Fundo dinâmico (hora do dia + clima). */
@@ -75,6 +79,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         override fun run() {
             updateSky(SKY_TICK_ANIM_MS)
             refreshWidgetForTime()
+            systemStatus.refresh()
             main.postDelayed(this, SKY_TICK_MS)
         }
     }
@@ -148,6 +153,11 @@ class MainActivity : Activity(), AppAdapter.Listener {
             }
         }
 
+        systemStatus = SystemStatus(findViewById(R.id.status_group)) {
+            if (resumed && prefs.weatherEnabled && (weatherData == null || weatherFailed)) refreshWeather()
+        }
+        systemStatus.setVisible(prefs.showSystemStatus)
+
         findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
         findViewById<ImageButton>(R.id.btn_search).setOnClickListener { openAppSearch() }
@@ -177,6 +187,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
             loadApps()
         }
         resumeWeather()
+        systemStatus.start()
         updateSky(if (weatherData == null) SKY_CHANGE_MS else SKY_TICK_ANIM_MS)
         main.removeCallbacks(skyTick)
         main.postDelayed(skyTick, SKY_TICK_MS)
@@ -184,6 +195,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     override fun onPause() {
         resumed = false
+        systemStatus.stop()
         main.removeCallbacks(weatherTick)
         main.removeCallbacks(skyTick)
         sky.stop()
@@ -356,12 +368,14 @@ class MainActivity : Activity(), AppAdapter.Listener {
             stopRefreshSpin()
             when (result) {
                 is WeatherRepository.Result.Success -> {
+                    weatherFailed = false
                     weatherData = result.data
                     showWeather(result.data)
                     updateSky(SKY_CHANGE_MS)
                     weatherIntervalMs()?.let { scheduleWeather(it) }
                 }
                 is WeatherRepository.Result.Failure -> {
+                    weatherFailed = true
                     val cached = weatherData
                     when {
                         cached != null -> showWeather(cached)
@@ -846,11 +860,51 @@ class MainActivity : Activity(), AppAdapter.Listener {
             ) {
                 panel.push(weatherPage())
             },
+            SidePanel.Item(
+                R.drawable.ic_storage, getString(R.string.opt_system), getString(R.string.opt_system_hint),
+                keepOpen = true,
+            ) {
+                panel.push(systemPage())
+            },
             SidePanel.Item(R.drawable.ic_info, getString(R.string.opt_about), keepOpen = true) {
                 panel.push(aboutPage())
             },
         )
         openPanel(SidePanel.Page(title = getString(R.string.launcher_options), items = items))
+    }
+
+    private fun systemPage(): SidePanel.Page {
+        val s = systemStatus.snapshot()
+        val net = when {
+            s.net != SystemStatus.Net.WIFI -> SystemStatus.netLabel(s.net)
+            s.wifiLevel == 0 -> R.string.system_wifi_weak
+            s.wifiLevel == 1 -> R.string.system_wifi_medium
+            else -> R.string.system_wifi_strong
+        }
+        fun size(bytes: Long) = Formatter.formatShortFileSize(this, bytes)
+        val items = listOf(
+            SidePanel.Item(
+                R.drawable.ic_visibility, getString(R.string.opt_status_show),
+                getString(R.string.opt_status_show_hint), checked = { prefs.showSystemStatus },
+            ) {
+                prefs.showSystemStatus = !prefs.showSystemStatus
+                systemStatus.setVisible(prefs.showSystemStatus)
+            },
+            SidePanel.Item(
+                R.drawable.ic_storage, getString(R.string.opt_storage), getString(R.string.opt_storage_hint),
+            ) {
+                if (!safeStart(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS))) openSystemSettings()
+            },
+            backItem(),
+        )
+        return SidePanel.Page(
+            title = getString(R.string.opt_system),
+            body = getString(
+                R.string.system_body, getString(net),
+                size(s.storageFree), size(s.storageTotal), size(s.ramFree), size(s.ramTotal),
+            ),
+            items = items,
+        )
     }
 
     private fun appearancePage(): SidePanel.Page {
