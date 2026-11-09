@@ -68,7 +68,7 @@
                     android:textSize="12sp"
                     android:visibility="gone" />
 
-                <!-- Status do sistema: espaço e RAM livres + aviso de sem internet. Não focável. -->
+                <!-- Status do sistema: espaço e RAM livres; o toggle das opções esconde. Não focável. -->
                 <LinearLayout
                     android:id="@+id/status_group"
                     android:layout_width="wrap_content"
@@ -85,19 +85,20 @@
                         android:maxLines="1"
                         android:textColor="@color/text_tertiary"
                         android:textSize="12sp" />
-
-                    <TextView
-                        android:id="@+id/status_offline"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:maxLines="1"
-                        android:text="@string/status_offline"
-                        android:textColor="@color/alert_text"
-                        android:textSize="12sp"
-                        android:visibility="gone" />
                 </LinearLayout>
+
+                <!-- Aviso de sem internet: parte fixa da rede, não depende do toggle de status. -->
+                <TextView
+                    android:id="@+id/status_offline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="@string/status_offline"
+                    android:textColor="@color/alert_text"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
 
                 <!-- Rede: sempre visível; abre as configurações de rede do sistema.
                      A descrição (tipo de rede) é posta no código, junto com o ícone. -->

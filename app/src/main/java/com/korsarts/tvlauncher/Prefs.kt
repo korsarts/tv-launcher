@@ -46,7 +46,7 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_GRID_COLUMNS, 5).coerceIn(4, 6)
         set(value) = sp.edit().putInt(KEY_GRID_COLUMNS, value).apply()
 
-    /** Indicadores de rede, espaço e RAM no topo da tela inicial. */
+    /** Espaço e RAM livres no topo da tela inicial (a rede é fixa, não depende disto). */
     var showSystemStatus: Boolean
         get() = sp.getBoolean(KEY_SYSTEM_STATUS, true)
         set(value) = sp.edit().putBoolean(KEY_SYSTEM_STATUS, value).apply()

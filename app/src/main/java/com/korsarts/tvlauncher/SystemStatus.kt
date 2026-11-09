@@ -19,15 +19,16 @@ import android.widget.ImageView
 import android.widget.TextView
 
 /**
- * Indicadores do topo: rede (Wi-Fi com nível de sinal, cabo ou sem internet) no botão fixo
- * [netIcon], e espaço livre e RAM livre no [group], que pode ser escondido. Só observa a rede entre
- * [start] e [stop] (launcher na tela).
+ * Indicadores do topo. Fixos: rede (Wi-Fi com nível de sinal, cabo ou sem internet) no botão
+ * [netIcon] e o aviso [netLabel]. Opcional: espaço livre e RAM livre no [group], que o toggle das
+ * opções esconde sem afetar a rede. Só observa a rede entre [start] e [stop] (launcher na tela).
  *
  * [onBackOnline] roda quando a internet volta depois de ter caído.
  */
 class SystemStatus(
     private val group: View,
     private val netIcon: ImageView,
+    private val netLabel: TextView,
     private val onBackOnline: () -> Unit,
 ) {
 
@@ -45,7 +46,6 @@ class SystemStatus(
     )
 
     private val context: Context = group.context
-    private val netLabel: TextView = group.findViewById(R.id.status_offline)
     private val text: TextView = group.findViewById(R.id.status_text)
     private val main = Handler(Looper.getMainLooper())
 
@@ -123,9 +123,9 @@ class SystemStatus(
         )
         netIcon.imageTintList = if (online) netNormalTint else netAlertTint
         netIcon.contentDescription = context.getString(netLabel(s.net))
+        netLabel.visibility = if (online) View.GONE else View.VISIBLE
 
         if (group.visibility != View.VISIBLE) return
-        netLabel.visibility = if (online) View.GONE else View.VISIBLE
 
         text.text = context.getString(
             R.string.status_summary,

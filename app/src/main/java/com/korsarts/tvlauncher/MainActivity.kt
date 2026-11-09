@@ -168,7 +168,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
         val networkButton = findViewById<ImageButton>(R.id.btn_network)
         networkButton.setOnClickListener { openNetworkSettings() }
-        systemStatus = SystemStatus(findViewById(R.id.status_group), networkButton) {
+        systemStatus = SystemStatus(findViewById(R.id.status_group), networkButton, findViewById(R.id.status_offline)) {
             if (resumed && prefs.weatherEnabled && (weatherData == null || weatherFailed)) refreshWeather()
         }
         systemStatus.setVisible(prefs.showSystemStatus)
