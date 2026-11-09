@@ -54,6 +54,7 @@
     <string name="opt_weather_city_manual">Atual: %1$s</string>
     <string name="opt_weather_auto">Usar localização automática</string>
     <string name="opt_weather_auto_hint">Detecta a cidade pelo IP da conexão</string>
+    <string name="weather_refresh">Atualizar clima</string>
     <string name="opt_weather_refresh">Atualizar agora</string>
     <string name="weather_search_title">Escolher cidade</string>
     <string name="weather_search_hint">Nome da cidade</string>

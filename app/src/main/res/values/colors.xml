@@ -34,7 +34,7 @@
     <color name="text_tertiary">#FF7F8796</color>
 
     <!-- Widget de clima -->
-    <color name="weather_panel">#B312151C</color>
+    <color name="weather_panel">#8C0E121A</color>
     <color name="weather_divider">#FF232836</color>
     <color name="weather_sun">#FFFFC94D</color>
     <color name="weather_moon">#FFD6DCF5</color>
@@ -43,4 +43,12 @@
     <color name="weather_rain">#FF8AB4F8</color>
     <color name="weather_fog">#FFA3AAB7</color>
     <color name="weather_snow">#FFFFFFFF</color>
+    <!-- Variantes por hora do dia -->
+    <color name="weather_sun_low">#FFFFA64D</color>
+    <color name="weather_sun_set">#FFFF7A59</color>
+    <color name="weather_cloud_low">#FFF3E3D9</color>
+    <color name="weather_cloud_night">#FFB4BDD6</color>
+    <color name="weather_cloud_night_dark">#FF5D6684</color>
+    <color name="weather_bolt">#FFFFC94D</color>
+    <color name="weather_star">#FFFFF2C2</color>
 </resources>

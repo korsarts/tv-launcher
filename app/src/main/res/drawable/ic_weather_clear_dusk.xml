@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pôr do sol (gerado) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="@color/weather_sun_set" android:pathData="M7,16a5,5 0,0 1,10 0z" />
+    <path android:strokeColor="@color/weather_sun_set" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:pathData="M12,7.5v-3M5.7,10.6l-2.1,-2.1M18.3,10.6l2.1,-2.1M3,16h3M18,16h3" />
+    <path android:strokeColor="@color/weather_cloud" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:pathData="M2,19h20" />
+    <path android:strokeColor="@color/weather_sun_set" android:strokeWidth="1.8" android:strokeLineJoin="round" android:strokeLineCap="round"
+        android:pathData="M9.5,21l2.5,2 2.5,-2" />
+</vector>

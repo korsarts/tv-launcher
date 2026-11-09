@@ -3,6 +3,8 @@ package com.korsarts.tvlauncher
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityOptions
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -16,11 +18,13 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
+import java.util.TimeZone
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -64,6 +68,21 @@ class MainActivity : Activity(), AppAdapter.Listener {
     private var weatherData: WeatherData? = null
     private val weatherTick = Runnable { refreshWeather() }
 
+    /** Fundo dinâmico (hora do dia + clima). */
+    private lateinit var sky: SkyDrawable
+    private val skyTick = object : Runnable {
+        override fun run() {
+            updateSky(SKY_TICK_ANIM_MS)
+            refreshWidgetForTime()
+            main.postDelayed(this, SKY_TICK_MS)
+        }
+    }
+    /** Fase + hora exibidas no widget: muda → redesenha ícones e "próximas horas". */
+    private var widgetTimeKey = -1L
+
+    private lateinit var refreshButton: ImageButton
+    private var refreshSpin: ObjectAnimator? = null
+
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (resumed) loadApps() else reloadPending = true
@@ -75,6 +94,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        sky = SkyDrawable(SkyState.BLANK)
+        window.setBackgroundDrawable(sky)
 
         prefs = Prefs(this)
         repo = AppRepository(this)
@@ -126,7 +148,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
         weather.loadCached { cached ->
             if (cached != null && weatherData == null) {
                 weatherData = cached
-                weatherWidget.show(cached)
+                showWeather(cached)
+                updateSky(SKY_CHANGE_MS)
             } else if (cached == null && weatherData == null) {
                 weatherWidget.showLoading()
             }
@@ -134,6 +157,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
         findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
+        refreshButton = findViewById(R.id.btn_refresh)
+        refreshButton.visibility = if (prefs.weatherEnabled) View.VISIBLE else View.GONE
+        refreshButton.setOnClickListener { refreshWeather() }
 
         content.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus -> onFocusMoved(newFocus) }
 
@@ -157,17 +183,24 @@ class MainActivity : Activity(), AppAdapter.Listener {
             loadApps()
         }
         resumeWeather()
+        updateSky(if (weatherData == null) SKY_CHANGE_MS else SKY_TICK_ANIM_MS)
+        main.removeCallbacks(skyTick)
+        main.postDelayed(skyTick, SKY_TICK_MS)
     }
 
     override fun onPause() {
         resumed = false
         main.removeCallbacks(weatherTick)
+        main.removeCallbacks(skyTick)
+        sky.stop()
         super.onPause()
     }
 
     override fun onDestroy() {
         unregisterReceiver(packageReceiver)
         main.removeCallbacks(weatherTick)
+        main.removeCallbacks(skyTick)
+        sky.stop()
         weather.shutdown()
         executor.shutdownNow()
         super.onDestroy()
@@ -299,7 +332,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         if (age >= WEATHER_REFRESH_MS || age < 0) {
             refreshWeather()
         } else {
-            weatherWidget.show(data!!) // as "próximas horas" andam mesmo sem buscar de novo
+            showWeather(data!!) // as "próximas horas" andam mesmo sem buscar de novo
             scheduleWeather(WEATHER_REFRESH_MS - age)
         }
     }
@@ -308,17 +341,20 @@ class MainActivity : Activity(), AppAdapter.Listener {
         main.removeCallbacks(weatherTick)
         if (!prefs.weatherEnabled) return
         if (weatherData == null) weatherWidget.showLoading()
+        startRefreshSpin()
         weather.refresh { result ->
+            stopRefreshSpin()
             when (result) {
                 is WeatherRepository.Result.Success -> {
                     weatherData = result.data
-                    weatherWidget.show(result.data)
+                    showWeather(result.data)
+                    updateSky(SKY_CHANGE_MS)
                     scheduleWeather(WEATHER_REFRESH_MS)
                 }
                 is WeatherRepository.Result.Failure -> {
                     val cached = weatherData
                     when {
-                        cached != null -> weatherWidget.show(cached)
+                        cached != null -> showWeather(cached)
                         result.noLocation -> weatherWidget.showMessage(R.string.weather_no_location)
                         else -> weatherWidget.showMessage(R.string.weather_unavailable)
                     }
@@ -326,6 +362,58 @@ class MainActivity : Activity(), AppAdapter.Listener {
                 }
             }
         }
+    }
+
+    private fun showWeather(data: WeatherData) {
+        val now = System.currentTimeMillis()
+        weatherWidget.show(data, now)
+        widgetTimeKey = widgetKey(data, now)
+    }
+
+    /** A cada minuto: se a fase do dia ou a hora mudou, atualiza ícones e próximas horas. */
+    private fun refreshWidgetForTime() {
+        val data = weatherData ?: return
+        if (!prefs.weatherEnabled) return
+        if (widgetKey(data, System.currentTimeMillis()) != widgetTimeKey) showWeather(data)
+    }
+
+    private fun widgetKey(data: WeatherData, now: Long): Long {
+        val (rise, set) = data.sunTimes(now)
+        return now / HOUR_MS * 4 + DayPhase.at(now, rise, set).ordinal
+    }
+
+    /** Recalcula o céu para agora (com o clima, se houver) e anima até ele. */
+    private fun updateSky(durationMs: Long) {
+        val now = System.currentTimeMillis()
+        val data = weatherData?.takeIf { prefs.weatherEnabled }
+        val (rise, set) = data?.sunTimes(now) ?: localSunTimes(now)
+        sky.setState(SkyState.compute(now, rise, set, data?.current?.code, data?.current?.cloudCover), durationMs)
+    }
+
+    /** Sem previsão: 6h/18h no fuso do aparelho. */
+    private fun localSunTimes(now: Long): Pair<Long, Long> {
+        val offset = TimeZone.getDefault().getOffset(now)
+        val midnight = (now + offset).floorDiv(DAY_MS) * DAY_MS - offset
+        return midnight + 6 * HOUR_MS to midnight + 18 * HOUR_MS
+    }
+
+    private fun startRefreshSpin() {
+        val running = refreshSpin
+        if (running != null) {
+            running.repeatCount = ValueAnimator.INFINITE
+            if (running.isRunning) return
+        }
+        refreshSpin = ObjectAnimator.ofFloat(refreshButton, View.ROTATION, 0f, 360f).apply {
+            duration = SPIN_MS
+            interpolator = LinearInterpolator()
+            repeatCount = ValueAnimator.INFINITE
+            start()
+        }
+    }
+
+    /** Termina a volta atual em vez de parar no meio (e garante pelo menos uma volta). */
+    private fun stopRefreshSpin() {
+        refreshSpin?.repeatCount = 0
     }
 
     /** Só agenda com o launcher em primeiro plano; o onResume retoma. */
@@ -337,7 +425,9 @@ class MainActivity : Activity(), AppAdapter.Listener {
     private fun setWeatherEnabled(enabled: Boolean) {
         prefs.weatherEnabled = enabled
         weatherWidget.root.visibility = if (enabled) View.VISIBLE else View.GONE
+        refreshButton.visibility = if (enabled) View.VISIBLE else View.GONE
         if (enabled) resumeWeather() else main.removeCallbacks(weatherTick)
+        updateSky(SKY_CHANGE_MS)
     }
 
     private fun setWeatherLocation(location: WeatherLocation?) {
@@ -703,6 +793,13 @@ class MainActivity : Activity(), AppAdapter.Listener {
     }
 
     private companion object {
+        const val HOUR_MS = 60 * 60 * 1000L
+        const val DAY_MS = 24 * HOUR_MS
+        const val SKY_TICK_MS = 60 * 1000L
+        const val SKY_TICK_ANIM_MS = 1500L
+        /** Mudança de clima/entrada: transição lenta, quase imperceptível como corte. */
+        const val SKY_CHANGE_MS = 2500L
+        const val SPIN_MS = 900L
         const val WEATHER_REFRESH_MS = 30 * 60 * 1000L
         const val WEATHER_RETRY_MS = 5 * 60 * 1000L
     }

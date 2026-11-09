@@ -56,6 +56,13 @@
                     android:textSize="15sp" />
 
                 <ImageButton
+                    android:id="@+id/btn_refresh"
+                    style="@style/TopButton"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="@string/weather_refresh"
+                    android:src="@drawable/ic_refresh" />
+
+                <ImageButton
                     android:id="@+id/btn_options"
                     style="@style/TopButton"
                     android:layout_marginEnd="8dp"

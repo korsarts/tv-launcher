@@ -97,9 +97,9 @@ class WeatherRepository(context: Context, private val prefs: Prefs) {
     private fun fetch(location: WeatherLocation): WeatherData {
         val url = "https://api.open-meteo.com/v1/forecast" +
             "?latitude=${coord(location.lat)}&longitude=${coord(location.lon)}" +
-            "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m" +
+            "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m,cloud_cover" +
             "&hourly=temperature_2m,weather_code,precipitation_probability,is_day" +
-            "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
+            "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
             "&timezone=auto&timeformat=unixtime&forecast_days=7"
         val json = get(url)
         val now = System.currentTimeMillis()

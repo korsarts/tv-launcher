@@ -72,7 +72,8 @@ class WeatherWidget(container: ViewGroup) {
         val c = data.current
         place.text = data.place
         updated.text = context.getString(R.string.weather_updated, DateFormat.getTimeFormat(context).format(Date(data.fetchedAt)))
-        icon.setImageResource(WeatherCode.icon(c.code, c.isDay))
+        val (sunrise, sunset) = data.sunTimes(nowMs)
+        icon.setImageResource(WeatherCode.icon(c.code, DayPhase.at(nowMs, sunrise, sunset)))
         temp.text = context.getString(R.string.weather_temp, c.temp.r())
         condition.setText(WeatherCode.label(c.code))
         val today = data.today(nowMs)
@@ -93,7 +94,9 @@ class WeatherWidget(container: ViewGroup) {
             cell.root.visibility = if (h == null) View.INVISIBLE else View.VISIBLE
             if (h == null) return@forEachIndexed
             cell.label.text = hourFmt.format(Date(h.time * 1000))
-            cell.icon.setImageResource(WeatherCode.icon(h.code, h.isDay))
+            val mid = h.time * 1000 + HALF_HOUR_MS
+            val (rise, set) = data.sunTimes(mid)
+            cell.icon.setImageResource(WeatherCode.icon(h.code, DayPhase.at(mid, rise, set)))
             cell.temp.text = context.getString(R.string.weather_temp, h.temp.r())
             cell.tempMin.visibility = View.GONE
             bindPrecip(cell, h.precip)
@@ -103,7 +106,7 @@ class WeatherWidget(container: ViewGroup) {
             cell.root.visibility = if (d == null) View.INVISIBLE else View.VISIBLE
             if (d == null) return@forEachIndexed
             cell.label.text = dayLabel(dayFmt.format(Date(d.time * 1000)))
-            cell.icon.setImageResource(WeatherCode.icon(d.code, isDay = true))
+            cell.icon.setImageResource(WeatherCode.dayIcon(d.code))
             cell.temp.text = context.getString(R.string.weather_temp, d.max.r())
             cell.tempMin.text = context.getString(R.string.weather_temp, d.min.r())
             cell.tempMin.visibility = View.VISIBLE
@@ -142,5 +145,6 @@ class WeatherWidget(container: ViewGroup) {
 
     companion object {
         const val COLUMNS = 5
+        private const val HALF_HOUR_MS = 30 * 60 * 1000L
     }
 }

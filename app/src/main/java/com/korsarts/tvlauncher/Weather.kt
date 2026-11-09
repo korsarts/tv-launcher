@@ -32,13 +32,37 @@ class WeatherData(
         val windKmh: Double,
         val code: Int,
         val isDay: Boolean,
+        /** Cobertura de nuvens em % (ausente em caches antigos). */
+        val cloudCover: Int? = null,
     )
 
     /** [time] em segundos (início da hora). */
     class Hour(val time: Long, val temp: Double, val code: Int, val isDay: Boolean, val precip: Int?)
 
     /** [time] em segundos (meia-noite local do dia). */
-    class Day(val time: Long, val max: Double, val min: Double, val code: Int, val precip: Int?)
+    class Day(
+        val time: Long,
+        val max: Double,
+        val min: Double,
+        val code: Int,
+        val precip: Int?,
+        /** Nascer/pôr do sol em segundos (ausentes em caches antigos). */
+        val sunrise: Long? = null,
+        val sunset: Long? = null,
+    )
+
+    /**
+     * Nascer e pôr do sol (em ms) do dia que contém [ms]. Sem o dado (cache antigo ou fora da
+     * previsão), estima 6h/18h no fuso da cidade.
+     */
+    fun sunTimes(ms: Long): Pair<Long, Long> {
+        val s = ms / 1000
+        val day = days.firstOrNull { s >= it.time && s < it.time + DAY_SECONDS }
+        if (day?.sunrise != null && day.sunset != null) return day.sunrise * 1000 to day.sunset * 1000
+        val offset = timeZone.getOffset(ms)
+        val localMidnight = (ms + offset).floorDiv(DAY_MS) * DAY_MS - offset
+        return localMidnight + 6 * HOUR_MS to localMidnight + 18 * HOUR_MS
+    }
 
     /** Próximas [count] horas depois de [nowMs]. */
     fun upcomingHours(nowMs: Long, count: Int): List<Hour> {
@@ -60,6 +84,8 @@ class WeatherData(
 
     companion object {
         private const val DAY_SECONDS = 24 * 60 * 60L
+        private const val HOUR_MS = 60 * 60 * 1000L
+        private const val DAY_MS = 24 * HOUR_MS
 
         /** Decodifica a resposta de `/v1/forecast` pedida com `timeformat=unixtime`. */
         fun parse(json: String, place: String, fetchedAt: Long): WeatherData {
@@ -74,6 +100,7 @@ class WeatherData(
                 windKmh = c.optDouble("wind_speed_10m", 0.0),
                 code = c.optInt("weather_code", 0),
                 isDay = c.optInt("is_day", 1) == 1,
+                cloudCover = if (c.has("cloud_cover") && !c.isNull("cloud_cover")) c.optInt("cloud_cover") else null,
             )
 
             val h = root.getJSONObject("hourly")
@@ -99,6 +126,8 @@ class WeatherData(
             val dMin = d.getJSONArray("temperature_2m_min")
             val dCode = d.getJSONArray("weather_code")
             val dPrecip = d.optJSONArray("precipitation_probability_max")
+            val dSunrise = d.optJSONArray("sunrise")
+            val dSunset = d.optJSONArray("sunset")
             val days = (0 until dTime.length()).mapNotNull { i ->
                 if (dMax.isNull(i) || dMin.isNull(i)) return@mapNotNull null
                 Day(
@@ -107,11 +136,16 @@ class WeatherData(
                     min = dMin.getDouble(i),
                     code = dCode.optInt(i, 0),
                     precip = dPrecip.intOrNull(i),
+                    sunrise = dSunrise.longOrNull(i),
+                    sunset = dSunset.longOrNull(i),
                 )
             }
 
             return WeatherData(place, tz, fetchedAt, current, hours, days)
         }
+
+        private fun JSONArray?.longOrNull(i: Int): Long? =
+            if (this == null || i >= length() || isNull(i)) null else optLong(i)
 
         private fun JSONArray?.intOrNull(i: Int): Int? =
             if (this == null || i >= length() || isNull(i)) null else optDouble(i).let { Math.round(it).toInt() }
@@ -121,17 +155,46 @@ class WeatherData(
 /** Códigos WMO usados pela Open-Meteo → ícone e descrição. */
 object WeatherCode {
 
-    fun icon(code: Int, isDay: Boolean): Int = when (code) {
-        0, 1 -> if (isDay) R.drawable.ic_weather_clear_day else R.drawable.ic_weather_clear_night
-        2 -> if (isDay) R.drawable.ic_weather_partly_day else R.drawable.ic_weather_partly_night
-        3 -> R.drawable.ic_weather_cloudy
-        45, 48 -> R.drawable.ic_weather_fog
-        51, 53, 55, 56, 57 -> R.drawable.ic_weather_drizzle
-        61, 63, 65, 66, 67, 80, 81, 82 -> R.drawable.ic_weather_rain
-        71, 73, 75, 77, 85, 86 -> R.drawable.ic_weather_snow
-        95, 96, 99 -> R.drawable.ic_weather_thunder
-        else -> R.drawable.ic_weather_cloudy
+    /** Ícone para a condição [code] na fase do dia [phase]. */
+    fun icon(code: Int, phase: DayPhase): Int {
+        val night = phase == DayPhase.NIGHT
+        val low = phase == DayPhase.DAWN || phase == DayPhase.DUSK
+        // Chuva/neve fraca e pancadas: o astro aparece atrás da nuvem também de dia.
+        val light = code in LIGHT
+        fun variant(day: Int, lowRes: Int, nightRes: Int, base: Int) = when {
+            night -> nightRes
+            low -> if (light) lowRes else base
+            else -> if (light) day else base
+        }
+        return when (code) {
+            0, 1 -> when (phase) {
+                DayPhase.DAWN -> R.drawable.ic_weather_clear_dawn
+                DayPhase.DUSK -> R.drawable.ic_weather_clear_dusk
+                DayPhase.NIGHT -> R.drawable.ic_weather_clear_night
+                DayPhase.DAY -> R.drawable.ic_weather_clear_day
+            }
+            2 -> when {
+                night -> R.drawable.ic_weather_partly_night
+                low -> R.drawable.ic_weather_partly_low
+                else -> R.drawable.ic_weather_partly_day
+            }
+            45, 48 -> variant(R.drawable.ic_weather_fog_day, R.drawable.ic_weather_fog_low, R.drawable.ic_weather_fog_night, R.drawable.ic_weather_fog)
+            51, 53, 55, 56, 57 -> variant(R.drawable.ic_weather_drizzle_day, R.drawable.ic_weather_drizzle_low, R.drawable.ic_weather_drizzle_night, R.drawable.ic_weather_drizzle)
+            61, 63, 65, 66, 67, 80, 81, 82 -> variant(R.drawable.ic_weather_rain_day, R.drawable.ic_weather_rain_low, R.drawable.ic_weather_rain_night, R.drawable.ic_weather_rain)
+            71, 73, 75, 77, 85, 86 -> variant(R.drawable.ic_weather_snow_day, R.drawable.ic_weather_snow_low, R.drawable.ic_weather_snow_night, R.drawable.ic_weather_snow)
+            95, 96, 99 -> variant(R.drawable.ic_weather_thunder_day, R.drawable.ic_weather_thunder_low, R.drawable.ic_weather_thunder_night, R.drawable.ic_weather_thunder)
+            else -> when {
+                night -> R.drawable.ic_weather_cloudy_night
+                low -> R.drawable.ic_weather_cloudy_low
+                else -> R.drawable.ic_weather_cloudy
+            }
+        }
     }
+
+    /** Ícone diurno (previsão por dia). */
+    fun dayIcon(code: Int): Int = icon(code, DayPhase.DAY)
+
+    private val LIGHT = setOf(45, 51, 53, 56, 61, 80, 81, 71, 85, 95)
 
     fun label(code: Int): Int = when (code) {
         0 -> R.string.wmo_clear
