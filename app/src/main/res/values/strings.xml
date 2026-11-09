@@ -114,7 +114,7 @@
     <string name="weather_loading">Carregando previsão do tempo…</string>
     <string name="weather_unavailable">Previsão do tempo indisponível. Verifique a conexão.</string>
     <string name="weather_air">Qualidade do ar %1$s (%2$d)</string>
-    <string name="weather_uv">Índice UV %1$d (%2$s)</string>
+    <string name="weather_uv">Índice UV %2$s (%1$d)</string>
     <string name="weather_join">%1$s · %2$s</string>
     <string name="weather_sun_times">%1$s – %2$s</string>
     <string name="aqi_good">boa</string>
@@ -123,11 +123,11 @@
     <string name="aqi_unhealthy">ruim</string>
     <string name="aqi_very_unhealthy">muito ruim</string>
     <string name="aqi_hazardous">perigosa</string>
-    <string name="uv_low">Baixo</string>
-    <string name="uv_moderate">Moderado</string>
-    <string name="uv_high">Alto</string>
-    <string name="uv_very_high">Muito alto</string>
-    <string name="uv_extreme">Extremo</string>
+    <string name="uv_low">baixo</string>
+    <string name="uv_moderate">moderado</string>
+    <string name="uv_high">alto</string>
+    <string name="uv_very_high">muito alto</string>
+    <string name="uv_extreme">extremo</string>
     <string name="alert_storm">Tempestade prevista às %1$s</string>
     <string name="alert_storm_now">Tempestade prevista para esta hora</string>
     <string name="alert_heavy_rain">Chuva forte às %1$s</string>
