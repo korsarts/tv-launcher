@@ -18,6 +18,9 @@
     <!-- Visibilidade de pacotes (API 30+): só precisamos ver apps com activity de launcher. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
+    <!-- Atualização do próprio launcher pelos releases do GitHub (o usuário confirma cada uma). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -88,5 +91,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
+
+        <!-- Recebe do instalador do Android o andamento da atualização do launcher. -->
+        <receiver
+            android:name=".UpdateReceiver"
+            android:exported="false" />
     </application>
 </manifest>

@@ -57,8 +57,16 @@ jobs:
           name: tv-launcher-apk
           path: tv-launcher.apk
 
+      # O título do commit da tag ("1.11.0: ...") vira o texto do release; o launcher o mostra
+      # na tela de atualização.
+      - name: Release notes
+        id: notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: tv-launcher.apk
+          body: ${{ steps.notes.outputs.subject }}

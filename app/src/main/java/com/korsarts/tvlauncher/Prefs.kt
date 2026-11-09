@@ -51,6 +51,21 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_SYSTEM_STATUS, true)
         set(value) = sp.edit().putBoolean(KEY_SYSTEM_STATUS, value).apply()
 
+    /** Procurar versão nova do launcher sozinho (no máximo uma vez por dia). */
+    var autoUpdateCheck: Boolean
+        get() = sp.getBoolean(KEY_UPDATE_AUTO, true)
+        set(value) = sp.edit().putBoolean(KEY_UPDATE_AUTO, value).apply()
+
+    /** Momento da última consulta de versão que deu certo, em ms. */
+    var lastUpdateCheck: Long
+        get() = sp.getLong(KEY_UPDATE_CHECKED_AT, 0)
+        set(value) = sp.edit().putLong(KEY_UPDATE_CHECKED_AT, value).apply()
+
+    /** Versão nova já encontrada ([Updater.Release.toJson]), para continuar oferecendo após reiniciar. */
+    var pendingUpdate: String?
+        get() = sp.getString(KEY_UPDATE_PENDING, null)
+        set(value) = sp.edit().putString(KEY_UPDATE_PENDING, value).apply()
+
     /** Intervalo da atualização automática do clima, em minutos (0 = desligada). */
     var weatherIntervalMin: Int
         get() = sp.getInt(KEY_WEATHER_INTERVAL, 30)
@@ -121,6 +136,9 @@ class Prefs(context: Context) {
         private const val KEY_SKY_STYLE = "sky_style"
         private const val KEY_GRID_COLUMNS = "grid_columns"
         private const val KEY_SYSTEM_STATUS = "system_status"
+        private const val KEY_UPDATE_AUTO = "update_auto"
+        private const val KEY_UPDATE_CHECKED_AT = "update_checked_at"
+        private const val KEY_UPDATE_PENDING = "update_pending"
         private const val KEY_WEATHER_INTERVAL = "weather_interval_min"
         private const val KEY_WEATHER_NAME = "weather_name"
         private const val KEY_WEATHER_REGION = "weather_region"

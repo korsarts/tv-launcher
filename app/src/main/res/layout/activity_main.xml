@@ -55,6 +55,19 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="15sp" />
 
+                <!-- Aviso de versão nova do launcher (instala-se pelas opções). Não focável. -->
+                <TextView
+                    android:id="@+id/update_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="@string/update_badge"
+                    android:textColor="@color/accent"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
                 <!-- Status do sistema: espaço e RAM livres + rede. Não focável. -->
                 <LinearLayout
                     android:id="@+id/status_group"

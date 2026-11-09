@@ -147,6 +147,9 @@ class SidePanel(
         if (currentPage === page) bindItems(page)
     }
 
+    /** Reexibe os textos de apoio e os estados da página atual depois de uma ação mudá-los. */
+    fun refreshRows() = refreshChecked()
+
     /** Leva o foco para a linha [index] da página atual (ex.: do campo para o 1º resultado). */
     fun focusItem(index: Int) = focusRow(index)
 

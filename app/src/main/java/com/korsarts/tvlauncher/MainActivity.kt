@@ -45,6 +45,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
     private lateinit var weather: WeatherRepository
     private lateinit var weatherWidget: WeatherWidget
     private lateinit var systemStatus: SystemStatus
+    private lateinit var updater: Updater
+    private lateinit var updateBadge: View
+    /** Versão nova do launcher já encontrada e ainda não instalada, ou null. */
+    private var update: Updater.Release? = null
     private var spanCount = 1
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -157,6 +161,11 @@ class MainActivity : Activity(), AppAdapter.Listener {
         }
         systemStatus.setVisible(prefs.showSystemStatus)
 
+        updater = Updater(this)
+        updateBadge = findViewById(R.id.update_badge)
+        // Oferta guardada de uma consulta anterior; some sozinha depois de instalada.
+        setUpdate(Updater.Release.fromJson(prefs.pendingUpdate)?.takeIf { updater.isNewer(it) })
+
         findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
         findViewById<ImageButton>(R.id.btn_search).setOnClickListener { openAppSearch() }
@@ -187,6 +196,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         }
         resumeWeather()
         systemStatus.start()
+        autoCheckUpdate()
         updateSky(if (weatherData == null) SKY_CHANGE_MS else SKY_TICK_ANIM_MS)
         main.removeCallbacks(skyTick)
         main.postDelayed(skyTick, SKY_TICK_MS)
@@ -207,6 +217,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         main.removeCallbacks(skyTick)
         sky.stop()
         weather.shutdown()
+        updater.shutdown()
         executor.shutdownNow()
         super.onDestroy()
     }
@@ -484,6 +495,70 @@ class MainActivity : Activity(), AppAdapter.Listener {
         weather.clearCache()
         weatherData = null
         refreshWeather()
+    }
+
+    // ---------------------------------------------------------------- atualização
+
+    private fun setUpdate(release: Updater.Release?) {
+        update = release
+        prefs.pendingUpdate = release?.toJson()
+        updateBadge.visibility = if (release != null) View.VISIBLE else View.GONE
+    }
+
+    /** No máximo uma consulta por dia, e só se a verificação automática estiver ligada. */
+    private fun autoCheckUpdate() {
+        val now = System.currentTimeMillis()
+        val age = now - prefs.lastUpdateCheck
+        if (!prefs.autoUpdateCheck || (age in 0 until UPDATE_CHECK_MS)) return
+        updater.check { result ->
+            if (result is Updater.Check.Failed) return@check // tenta de novo na próxima vez
+            prefs.lastUpdateCheck = System.currentTimeMillis()
+            val found = (result as? Updater.Check.Available)?.release
+            val isNews = found != null && found.version != update?.version
+            setUpdate(found)
+            if (isNews && found != null && resumed) {
+                Toast.makeText(this, getString(R.string.update_found, found.version), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun updatePage(release: Updater.Release): SidePanel.Page {
+        lateinit var page: SidePanel.Page
+        val items = listOf(
+            SidePanel.Item(R.drawable.ic_sync, getString(R.string.update_install), keepOpen = true) {
+                startUpdate(release, page)
+            },
+            backItem(),
+        )
+        page = SidePanel.Page(
+            title = getString(R.string.update_title),
+            subtitle = getString(R.string.update_subtitle, release.version, updater.installedVersion),
+            icon = getDrawable(R.drawable.ic_launcher),
+            body = release.notes.ifEmpty {
+                getString(R.string.update_default_notes, Formatter.formatShortFileSize(this, release.size))
+            },
+            items = items,
+        )
+        return page
+    }
+
+    private fun startUpdate(release: Updater.Release, page: SidePanel.Page) {
+        if (updater.installing) return
+        if (!updater.canInstall()) {
+            // Android 8+: o usuário precisa liberar o launcher como fonte de instalação.
+            Toast.makeText(this, R.string.update_allow_source, Toast.LENGTH_LONG).show()
+            val allow = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.fromParts("package", packageName, null))
+            if (!safeStart(allow) && !safeStart(Intent(Settings.ACTION_SECURITY_SETTINGS))) openSystemSettings()
+            return
+        }
+        panel.setBody(page, getString(R.string.update_downloading, 0))
+        updater.install(
+            release,
+            onProgress = { percent -> panel.setBody(page, getString(R.string.update_downloading, percent)) },
+            onDone = { ok ->
+                panel.setBody(page, getString(if (ok) R.string.update_downloaded else R.string.update_download_failed))
+            },
+        )
     }
 
     // ---------------------------------------------------------------- foco
@@ -806,7 +881,16 @@ class MainActivity : Activity(), AppAdapter.Listener {
     }
 
     private fun showLauncherOptions() {
-        val items = listOf(
+        val items = ArrayList<SidePanel.Item>(10)
+        update?.let { release ->
+            items += SidePanel.Item(
+                R.drawable.ic_sync, getString(R.string.update_item, release.version),
+                getString(R.string.update_item_hint), keepOpen = true,
+            ) {
+                panel.push(updatePage(release))
+            }
+        }
+        items += listOf(
             SidePanel.Item(R.drawable.ic_settings, getString(R.string.opt_system_settings)) {
                 openSystemSettings()
             },
@@ -854,7 +938,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
             ) {
                 panel.push(systemPage())
             },
-            SidePanel.Item(R.drawable.ic_info, getString(R.string.opt_about), keepOpen = true) {
+            SidePanel.Item(
+                R.drawable.ic_info, getString(R.string.opt_about), getString(R.string.opt_about_hint),
+                keepOpen = true,
+            ) {
                 panel.push(aboutPage())
             },
         )
@@ -1092,14 +1179,66 @@ class MainActivity : Activity(), AppAdapter.Listener {
     }
 
     private fun aboutPage(): SidePanel.Page {
-        val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull()
-        return SidePanel.Page(
-            title = getString(R.string.app_name),
-            subtitle = version?.let { getString(R.string.opt_version, it) },
-            icon = getDrawable(R.drawable.ic_launcher),
-            body = getString(R.string.about_text),
-            items = listOf(backItem()),
+        lateinit var page: SidePanel.Page
+        lateinit var checkItem: SidePanel.Item
+        checkItem = SidePanel.Item(R.drawable.ic_sync, getString(R.string.update_check), keepOpen = true) {
+            checkItem.hint = getString(R.string.update_checking)
+            panel.refreshRows()
+            updater.check { result ->
+                if (result !is Updater.Check.Failed) {
+                    prefs.lastUpdateCheck = System.currentTimeMillis()
+                    setUpdate((result as? Updater.Check.Available)?.release)
+                }
+                checkItem.hint = when (result) {
+                    is Updater.Check.Available -> getString(R.string.update_item, result.release.version)
+                    is Updater.Check.UpToDate -> getString(R.string.update_current)
+                    is Updater.Check.Failed -> getString(R.string.update_check_failed)
+                }
+                if (panel.currentPage !== page) return@check // usuário saiu da página
+                panel.refreshRows()
+                if (result is Updater.Check.Available) panel.push(updatePage(result.release))
+            }
+        }
+        update?.let { checkItem.hint = getString(R.string.update_item, it.version) }
+
+        fun textPage(title: Int, text: Int) = SidePanel.Page(
+            title = getString(title), body = getString(text), items = listOf(backItem()),
         )
+        val items = listOf(
+            checkItem,
+            SidePanel.Item(
+                R.drawable.ic_schedule, getString(R.string.update_auto), getString(R.string.update_auto_hint),
+                checked = { prefs.autoUpdateCheck },
+            ) {
+                prefs.autoUpdateCheck = !prefs.autoUpdateCheck
+            },
+            SidePanel.Item(
+                R.drawable.ic_star_border, getString(R.string.about_changelog),
+                getString(R.string.about_changelog_hint), keepOpen = true,
+            ) {
+                panel.push(textPage(R.string.about_changelog, R.string.changelog_text))
+            },
+            SidePanel.Item(
+                R.drawable.ic_visibility, getString(R.string.about_services),
+                getString(R.string.about_services_hint), keepOpen = true,
+            ) {
+                panel.push(textPage(R.string.about_services, R.string.about_services_text))
+            },
+            SidePanel.Item(
+                R.drawable.ic_home, getString(R.string.about_default),
+                getString(R.string.about_default_hint), keepOpen = true,
+            ) {
+                panel.push(textPage(R.string.about_default, R.string.about_text))
+            },
+            backItem(),
+        )
+        page = SidePanel.Page(
+            title = getString(R.string.app_name),
+            subtitle = getString(R.string.opt_version, updater.installedVersion),
+            icon = getDrawable(R.drawable.ic_launcher),
+            items = items,
+        )
+        return page
     }
 
     private companion object {
@@ -1117,6 +1256,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         /** Cards por linha: grandes, médios (padrão), pequenos. */
         val CARD_COLUMNS = intArrayOf(4, 5, 6)
         const val SEARCH_RESULTS = 8
+        const val UPDATE_CHECK_MS = 24 * HOUR_MS
         /** Marcas de acento soltas pela decomposição NFD. */
         val DIACRITICS = Regex("\\p{Mn}+")
     }

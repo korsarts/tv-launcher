@@ -3,7 +3,7 @@
 Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick (MDZ-24-AA)**
 (Android TV 9, 1 GB de RAM), mas funciona em qualquer Android TV com API 21 ou superior.
 
-- APK de ~240 KB, sem Leanback/Compose/AppCompat: só `Activity` + `RecyclerView`
+- APK de ~310 KB, sem Leanback/Compose/AppCompat: só `Activity` + `RecyclerView`
 - Relógio e data, **widget de clima**, linha de **Favoritos** (ordenável) e grade de **todos os apps**
 - Usa o banner 16:9 dos apps de TV; apps de celular (sideload) aparecem com ícone e nome
 - Menu lateral do app (segure OK ou aperte MENU): favoritar, mover (◀ ▶ e OK para confirmar), ocultar, informações, desinstalar
@@ -19,6 +19,8 @@ Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick
   ou desliga os indicadores e abre a tela de armazenamento do Android
 - **Protetor de tela** próprio: o fundo dinâmico em tela cheia com relógio, data e clima (veja
   [Protetor de tela](#protetor-de-tela))
+- **Atualização pelo próprio launcher:** avisa quando há versão nova e instala por dentro do app
+  (veja [Atualização](#atualização))
 - Foco sem contorno: o card focado cresce e acende, os demais ficam levemente esmaecidos
 - Atualiza sozinho quando um app é instalado ou removido
 - Serviço de acessibilidade **opcional** para o botão HOME abrir este launcher sem root
@@ -60,7 +62,26 @@ dias, com a chance de chuva quando houver.
   - [Open-Meteo](https://open-meteo.com) para a previsão, a qualidade do ar e a busca de cidades (recebe só as
     coordenadas ou o nome buscado);
   - [ipwho.is](https://ipwho.is) com fallback para [ipapi.co](https://ipapi.co), **apenas no modo
-    automático**, para descobrir a cidade pelo IP (consulta no máximo a cada 12 h).
+    automático**, para descobrir a cidade pelo IP (consulta no máximo a cada 12 h);
+  - [GitHub](https://github.com/korsarts/tv-launcher) para consultar e baixar versões novas do
+    launcher (no máximo uma consulta por dia; dá para desligar em *Sobre*).
+
+## Atualização
+
+Uma vez por dia, ao voltar para a tela inicial, o launcher consulta o último release deste
+repositório no GitHub. Havendo versão mais nova, aparece "Nova versão disponível" no topo e o item
+**Atualizar para X** no começo de *Opções do launcher*. *Baixar e instalar* baixa o APK e chama o
+instalador do Android, que pede a sua confirmação; o launcher reabre na versão nova.
+
+- **Na primeira vez**, o Android pede para liberar o TV Launcher como fonte de instalação
+  (*Segurança e restrições → Fontes desconhecidas*). Libere e escolha *Baixar e instalar* de novo.
+- **A assinatura precisa ser a mesma.** O Android só instala por cima se o APK do release foi
+  assinado com a mesma chave do que está instalado (veja [Assinatura](#assinatura)). Um APK local
+  assinado com a chave de debug não é atualizado por um release assinado com a sua chave: nesse
+  caso, desinstale e instale o APK do release uma vez.
+- *Opções do launcher → Sobre* tem **Verificar atualizações** (consulta na hora), o liga/desliga
+  da verificação automática, as novidades de cada versão e a lista de serviços acessados.
+- O texto do release é o título do commit da tag (ex.: `1.11.0: ...`), preenchido pelo workflow.
 
 ## Protetor de tela
 

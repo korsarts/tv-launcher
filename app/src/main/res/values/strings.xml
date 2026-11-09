@@ -65,7 +65,37 @@
     <string name="system_wifi_weak">Wi-Fi (sinal fraco)</string>
     <string name="system_wifi_medium">Wi-Fi (sinal médio)</string>
     <string name="system_wifi_strong">Wi-Fi (sinal forte)</string>
-    <string name="opt_about">Sobre / como definir como padrão</string>
+    <string name="opt_about">Sobre</string>
+    <string name="opt_about_hint">Versão, novidades e atualização</string>
+    <string name="about_default">Como definir como padrão</string>
+    <string name="about_default_hint">Fazer o botão HOME abrir este launcher</string>
+    <string name="about_changelog">Novidades</string>
+    <string name="about_changelog_hint">O que mudou em cada versão</string>
+    <string name="about_services">Serviços e privacidade</string>
+    <string name="about_services_hint">O que o launcher acessa na internet</string>
+    <string name="about_services_text">O TV Launcher não tem conta, anúncios nem coleta de dados. Ele só acessa a internet para:\n\n• Open-Meteo (open-meteo.com): previsão do tempo, qualidade do ar e busca de cidades. Recebe as coordenadas ou o nome buscado.\n\n• ipwho.is e ipapi.co: descobrir a cidade pelo IP, só com a localização automática ligada, no máximo a cada 12 horas.\n\n• GitHub (github.com/korsarts/tv-launcher): consultar e baixar versões novas do launcher. Dá para desligar a verificação automática em Sobre.\n\nTodas as conexões usam HTTPS.</string>
+    <string name="changelog_text">1.11.0\nAtualização pelo próprio launcher e nova tela Sobre.\n\n1.10.0\nProtetor de tela com o fundo dinâmico, relógio e clima.\n\n1.9.0\nStatus de rede, espaço livre e RAM no topo.\n\n1.8.0\nBusca de apps e tamanho dos cards.\n\n1.7.0\nAvisos de chuva, qualidade do ar, índice UV, sol e lua.\n\n1.6.0\nIntervalo da atualização automática do clima.\n\n1.5.0\nSeis estilos de fundo.\n\n1.4.0\nDegradê mais suave e opção de desligar o fundo dinâmico.\n\n1.3.0\nFundo de céu dinâmico, ícones por hora do dia e botão de atualizar o clima.\n\n1.2.0\nWidget de clima.\n\n1.1.0\nNovo visual: favoritos embaixo, grade em página própria e painel lateral.\n\n1.0.0\nPrimeira versão.</string>
+
+    <!-- Atualização do launcher -->
+    <string name="update_badge">Nova versão disponível</string>
+    <string name="update_found">TV Launcher %1$s disponível. Abra Opções do launcher para atualizar.</string>
+    <string name="update_item">Atualizar para %1$s</string>
+    <string name="update_item_hint">Nova versão do TV Launcher</string>
+    <string name="update_title">Atualização</string>
+    <string name="update_subtitle">Versão %1$s (instalada: %2$s)</string>
+    <string name="update_default_notes">Há uma versão nova do TV Launcher. O download tem cerca de %1$s; ao terminar, o Android pede a sua confirmação para instalar.</string>
+    <string name="update_install">Baixar e instalar</string>
+    <string name="update_downloading">Baixando… %1$d%%</string>
+    <string name="update_downloaded">Download concluído. Confirme a instalação na tela do Android; o launcher reabre sozinho na versão nova.</string>
+    <string name="update_download_failed">Não foi possível baixar a atualização. Verifique a conexão e tente de novo.</string>
+    <string name="update_install_failed">A atualização não foi instalada. %1$s</string>
+    <string name="update_allow_source">Permita que o TV Launcher instale apps (Fontes desconhecidas) e tente de novo.</string>
+    <string name="update_check">Verificar atualizações</string>
+    <string name="update_checking">Verificando…</string>
+    <string name="update_current">Você já tem a versão mais recente</string>
+    <string name="update_check_failed">Não foi possível verificar. Verifique a conexão.</string>
+    <string name="update_auto">Verificar automaticamente</string>
+    <string name="update_auto_hint">Uma vez por dia, ao abrir o launcher</string>
     <string name="back">Voltar</string>
     <string name="opt_version">Versão %1$s</string>
 
