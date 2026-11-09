@@ -75,6 +75,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_WEATHER_ENABLED, true)
         set(value) = sp.edit().putBoolean(KEY_WEATHER_ENABLED, value).apply()
 
+    /** Painel de próximas datas (feriados e comemorativas) revezando com a previsão. */
+    var holidaysEnabled: Boolean
+        get() = sp.getBoolean(KEY_HOLIDAYS_ENABLED, true)
+        set(value) = sp.edit().putBoolean(KEY_HOLIDAYS_ENABLED, value).apply()
+
     /** Cidade escolhida na busca; null = localização automática pelo IP. */
     var weatherManualLocation: WeatherLocation?
         get() {
@@ -132,6 +137,7 @@ class Prefs(context: Context) {
         private const val KEY_SHOW_HIDDEN = "show_hidden"
         private const val KEY_REDIRECT = "redirect_stock"
         private const val KEY_WEATHER_ENABLED = "weather_enabled"
+        private const val KEY_HOLIDAYS_ENABLED = "holidays_enabled"
         private const val KEY_SKY_ENABLED = "sky_enabled"
         private const val KEY_SKY_STYLE = "sky_style"
         private const val KEY_GRID_COLUMNS = "grid_columns"

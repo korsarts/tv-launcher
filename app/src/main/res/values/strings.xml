@@ -117,6 +117,37 @@
     <string name="weather_uv">Índice UV %2$s (%1$d)</string>
     <string name="weather_join">%1$s · %2$s</string>
     <string name="weather_sun_times">%1$s – %2$s</string>
+
+    <!-- Próximas datas (painel que reveza com a previsão) -->
+    <string name="dates_title">Próximas datas</string>
+    <string name="dates_day">%1$d %2$s</string>
+    <string name="dates_today">hoje</string>
+    <string name="dates_tomorrow">amanhã</string>
+    <plurals name="dates_in_days">
+        <item quantity="one">em %d dia</item>
+        <item quantity="other">em %d dias</item>
+    </plurals>
+    <string name="dates_bridge">emenda</string>
+    <string name="dates_optional">facultativo</string>
+    <string name="holiday_new_year">Confraternização Universal</string>
+    <string name="holiday_carnival">Carnaval</string>
+    <string name="holiday_ash_wednesday">Quarta-feira de Cinzas</string>
+    <string name="holiday_good_friday">Sexta-feira Santa</string>
+    <string name="holiday_easter">Páscoa</string>
+    <string name="holiday_tiradentes">Tiradentes</string>
+    <string name="holiday_labour">Dia do Trabalho</string>
+    <string name="holiday_mothers">Dia das Mães</string>
+    <string name="holiday_valentines">Dia dos Namorados</string>
+    <string name="holiday_corpus_christi">Corpus Christi</string>
+    <string name="holiday_fathers">Dia dos Pais</string>
+    <string name="holiday_independence">Independência do Brasil</string>
+    <string name="holiday_aparecida">N. Sra. Aparecida · Dia das Crianças</string>
+    <string name="holiday_all_souls">Finados</string>
+    <string name="holiday_republic">Proclamação da República</string>
+    <string name="holiday_black_consciousness">Consciência Negra</string>
+    <string name="holiday_christmas_eve">Véspera de Natal</string>
+    <string name="holiday_christmas">Natal</string>
+    <string name="holiday_new_years_eve">Véspera de Ano-Novo</string>
     <string name="aqi_good">boa</string>
     <string name="aqi_moderate">moderada</string>
     <string name="aqi_sensitive">ruim para sensíveis</string>
@@ -168,6 +199,8 @@
     <string name="opt_weather_city_manual">Atual: %1$s</string>
     <string name="opt_weather_auto">Usar localização automática</string>
     <string name="opt_weather_auto_hint">Detecta a cidade pelo IP da conexão</string>
+    <string name="opt_holidays_show">Mostrar próximas datas</string>
+    <string name="opt_holidays_hint">Feriados e datas comemorativas, alternando com a previsão</string>
     <string name="weather_refresh">Atualizar clima</string>
     <string name="opt_weather_interval">Atualização automática</string>
     <string name="weather_interval_off">Desligada</string>

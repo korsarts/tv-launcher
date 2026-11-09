@@ -146,6 +146,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
         weather = WeatherRepository(this, prefs)
         weatherWidget = WeatherWidget(findViewById(R.id.widget_area))
         weatherWidget.root.visibility = if (prefs.weatherEnabled) View.VISIBLE else View.GONE
+        weatherWidget.setDatesEnabled(prefs.holidaysEnabled)
         weather.loadCached { cached ->
             if (cached != null && weatherData == null) {
                 weatherData = cached
@@ -1088,11 +1089,18 @@ class MainActivity : Activity(), AppAdapter.Listener {
             autoName != null -> getString(R.string.opt_weather_city_auto, autoName)
             else -> getString(R.string.opt_weather_city_auto_unknown)
         }
-        val items = ArrayList<SidePanel.Item>(5)
+        val items = ArrayList<SidePanel.Item>(7)
         items += SidePanel.Item(
             R.drawable.ic_weather, getString(R.string.opt_weather_show), checked = { prefs.weatherEnabled },
         ) {
             setWeatherEnabled(!prefs.weatherEnabled)
+        }
+        items += SidePanel.Item(
+            R.drawable.ic_schedule, getString(R.string.opt_holidays_show), getString(R.string.opt_holidays_hint),
+            checked = { prefs.holidaysEnabled },
+        ) {
+            prefs.holidaysEnabled = !prefs.holidaysEnabled
+            weatherWidget.setDatesEnabled(prefs.holidaysEnabled)
         }
         items += SidePanel.Item(R.drawable.ic_search, getString(R.string.opt_weather_city), cityHint, keepOpen = true) {
             panel.push(citySearchPage())

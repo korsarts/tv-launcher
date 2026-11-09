@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Linha do painel de próximas datas: data, dia da semana, nome, selo e contagem. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="9dp"
+    android:paddingBottom="9dp">
+
+    <TextView
+        android:id="@+id/date_day"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:minWidth="58dp"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/date_weekday"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:minWidth="40dp"
+        android:textColor="@color/text_tertiary"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/date_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp" />
+
+    <!-- "emenda" ou "facultativo"; some quando não se aplica. -->
+    <TextView
+        android:id="@+id/date_tag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/weather_alert_background"
+        android:maxLines="1"
+        android:paddingStart="7dp"
+        android:paddingTop="1dp"
+        android:paddingEnd="7dp"
+        android:paddingBottom="2dp"
+        android:textColor="@color/alert_text"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/date_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:maxLines="1"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+</LinearLayout>

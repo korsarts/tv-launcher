@@ -1,5 +1,6 @@
 package com.korsarts.tvlauncher
 
+import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateFormat
@@ -12,6 +13,7 @@ import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /** Views do widget de clima. Só exibe; quem busca os dados é o [WeatherRepository]. */
 class WeatherWidget(container: ViewGroup) {
@@ -43,6 +45,9 @@ class WeatherWidget(container: ViewGroup) {
     }
     private val hourCells = buildCells(root.findViewById(R.id.weather_hours))
     private val dayCells = buildCells(root.findViewById(R.id.weather_days))
+    private val forecastPage: View = root.findViewById(R.id.weather_forecast_page)
+    private val datesPage: View = root.findViewById(R.id.weather_dates_page)
+    private val dateRows = buildDateRows(root.findViewById(R.id.weather_dates))
 
     private val ptBr: Locale = Locale.forLanguageTag("pt-BR")
 
@@ -56,8 +61,35 @@ class WeatherWidget(container: ViewGroup) {
     private val rotate = object : Runnable {
         override fun run() {
             // Só anima com o widget à vista; fora disso, só espera a próxima vez.
-            if (facts.size > 1 && details.isShown) nextFact()
+            // Nunca junto com a troca do painel: duas coisas mexendo ao mesmo tempo cansa a vista.
+            if (facts.size > 1 && details.isShown && !switchingPage) nextFact()
             handler.postDelayed(this, FACT_MS)
+        }
+    }
+
+    // Painel da direita: reveza a previsão com as próximas datas (só se houver alguma perto).
+    private var datesEnabled = true
+    private var showingDates = false
+    private var switchingPage = false
+    private val pageShift = 24 * context.resources.displayMetrics.density
+    private val pageTick = object : Runnable {
+        override fun run() {
+            when {
+                !content.isShown -> {
+                    resetPages()
+                    handler.postDelayed(this, FORECAST_MS)
+                }
+                fading -> handler.postDelayed(this, WAIT_MS) // espera a linha de fatos terminar
+                showingDates -> {
+                    switchPage(toDates = false)
+                    handler.postDelayed(this, FORECAST_MS)
+                }
+                datesEnabled && bindDates(System.currentTimeMillis()) -> {
+                    switchPage(toDates = true)
+                    handler.postDelayed(this, DATES_MS)
+                }
+                else -> handler.postDelayed(this, FORECAST_MS)
+            }
         }
     }
 
@@ -68,6 +100,24 @@ class WeatherWidget(container: ViewGroup) {
         val temp: TextView = view.findViewById(R.id.forecast_temp)
         val tempMin: TextView = view.findViewById(R.id.forecast_temp_min)
         val precip: TextView = view.findViewById(R.id.forecast_precip)
+    }
+
+    private class DateRow(view: View) {
+        val root = view
+        val day: TextView = view.findViewById(R.id.date_day)
+        val weekday: TextView = view.findViewById(R.id.date_weekday)
+        val name: TextView = view.findViewById(R.id.date_name)
+        val tag: TextView = view.findViewById(R.id.date_tag)
+        val count: TextView = view.findViewById(R.id.date_count)
+    }
+
+    private fun buildDateRows(list: LinearLayout): List<DateRow> {
+        val inflater = LayoutInflater.from(context)
+        return List(DATE_ROWS) {
+            val v = inflater.inflate(R.layout.item_date, list, false)
+            list.addView(v)
+            DateRow(v)
+        }
     }
 
     private fun buildCells(row: LinearLayout): List<Cell> {
@@ -83,6 +133,7 @@ class WeatherWidget(container: ViewGroup) {
 
     fun showMessage(textRes: Int) {
         content.animate().cancel()
+        resetPages()
         content.visibility = View.INVISIBLE
         message.setText(textRes)
         message.visibility = View.VISIBLE
@@ -151,6 +202,9 @@ class WeatherWidget(container: ViewGroup) {
             bindPrecip(cell, d.precip)
         }
 
+        // Com as datas na tela, atualiza também (a virada do dia aparece aqui).
+        if (showingDates && !switchingPage && !bindDates(nowMs)) resetPages()
+
         message.visibility = View.GONE
         if (content.visibility != View.VISIBLE) fadeIn()
     }
@@ -200,9 +254,13 @@ class WeatherWidget(container: ViewGroup) {
         if (active == value) return
         active = value
         handler.removeCallbacks(rotate)
+        handler.removeCallbacks(pageTick)
         if (value) {
             handler.postDelayed(rotate, FACT_MS)
+            handler.postDelayed(pageTick, FORECAST_MS)
         } else {
+            // Ao voltar ao launcher, quem aparece primeiro é a previsão.
+            resetPages()
             details.animate().cancel()
             fading = false
             details.alpha = 1f
@@ -227,6 +285,98 @@ class WeatherWidget(container: ViewGroup) {
                     .start()
             }
             .start()
+    }
+
+    /** Liga ou desliga o painel de datas; desligado com as datas na tela, volta para a previsão. */
+    fun setDatesEnabled(value: Boolean) {
+        datesEnabled = value
+        if (!value) resetPages()
+    }
+
+    /** Sai deslizando para a esquerda; a outra página entra pela direita. */
+    private fun switchPage(toDates: Boolean) {
+        val out = if (toDates) forecastPage else datesPage
+        val into = if (toDates) datesPage else forecastPage
+        switchingPage = true
+        showingDates = toDates
+        out.animate().alpha(0f).translationX(-pageShift)
+            .setDuration(PAGE_OUT_MS).setInterpolator(Motion.STANDARD).withLayer()
+            .withEndAction {
+                // A previsão fica INVISIBLE (não GONE): é ela que dá a altura do painel.
+                out.visibility = if (out === forecastPage) View.INVISIBLE else View.GONE
+                into.visibility = View.VISIBLE
+                into.alpha = 0f
+                into.translationX = pageShift
+                into.animate().alpha(1f).translationX(0f)
+                    .setDuration(PAGE_IN_MS).setInterpolator(Motion.STANDARD).withLayer()
+                    .withEndAction { switchingPage = false }
+                    .start()
+            }
+            .start()
+    }
+
+    /** Volta para a previsão na hora, sem animação. */
+    private fun resetPages() {
+        forecastPage.animate().cancel()
+        datesPage.animate().cancel()
+        switchingPage = false
+        showingDates = false
+        forecastPage.visibility = View.VISIBLE
+        forecastPage.alpha = 1f
+        forecastPage.translationX = 0f
+        datesPage.visibility = View.GONE
+        datesPage.alpha = 1f
+        datesPage.translationX = 0f
+    }
+
+    /**
+     * Preenche as linhas com as próximas datas a partir de hoje. Retorna false (e não mexe em
+     * nada) se a mais próxima estiver a mais de [DATES_AHEAD_DAYS] dias.
+     */
+    private fun bindDates(nowMs: Long): Boolean {
+        val tz = TimeZone.getDefault()
+        val list = Holidays.upcoming(nowMs, tz, DATE_ROWS)
+        val first = list.firstOrNull() ?: return false
+        if (Holidays.daysUntil(first, nowMs, tz) > DATES_AHEAD_DAYS) return false
+
+        // As datas são dias "puros" (sem fuso): formata em UTC a meia-noite do dia.
+        val utc = TimeZone.getTimeZone("UTC")
+        val monthFmt = SimpleDateFormat("MMM", ptBr).apply { timeZone = utc }
+        val weekdayFmt = SimpleDateFormat("EEE", ptBr).apply { timeZone = utc }
+        @Suppress("DEPRECATION")
+        val primary = context.resources.getColor(R.color.text_primary)
+        @Suppress("DEPRECATION")
+        val secondary = context.resources.getColor(R.color.text_secondary)
+
+        dateRows.forEachIndexed { i, row ->
+            val h = list.getOrNull(i)
+            row.root.visibility = if (h == null) View.GONE else View.VISIBLE
+            if (h == null) return@forEachIndexed
+            val date = Date(h.epochDay * DAY_MS)
+            row.day.text = context.getString(
+                R.string.dates_day, h.day, monthFmt.format(date).trimEnd('.').lowercase(ptBr),
+            )
+            row.weekday.text = dayLabel(weekdayFmt.format(date))
+            row.name.setText(h.name)
+            row.name.setTextColor(if (h.kind == Holidays.Kind.OBSERVANCE) secondary else primary)
+            // A mais próxima em destaque.
+            val face = if (i == 0) Typeface.create("sans-serif-medium", Typeface.NORMAL) else Typeface.DEFAULT
+            row.day.typeface = face
+            row.name.typeface = face
+            val tag = when {
+                h.isBridge -> R.string.dates_bridge
+                h.kind == Holidays.Kind.OPTIONAL -> R.string.dates_optional
+                else -> 0
+            }
+            if (tag != 0) row.tag.setText(tag)
+            row.tag.visibility = if (tag != 0) View.VISIBLE else View.GONE
+            row.count.text = when (val days = Holidays.daysUntil(h, nowMs, tz)) {
+                0 -> context.getString(R.string.dates_today)
+                1 -> context.getString(R.string.dates_tomorrow)
+                else -> context.resources.getQuantityString(R.plurals.dates_in_days, days, days)
+            }
+        }
+        return true
     }
 
     private fun bindPrecip(cell: Cell, precip: Int?) {
@@ -262,5 +412,16 @@ class WeatherWidget(container: ViewGroup) {
         private const val FADE_OUT_MS = 280L
         private const val FADE_IN_MS = 360L
         private const val HALF_HOUR_MS = 30 * 60 * 1000L
+        private const val DAY_MS = 24 * 60 * 60 * 1000L
+        /** Tempo de cada página do painel da direita. */
+        private const val FORECAST_MS = 20_000L
+        private const val DATES_MS = 10_000L
+        /** Espera curta quando a linha de fatos está no meio da troca. */
+        private const val WAIT_MS = 400L
+        private const val PAGE_OUT_MS = 280L
+        private const val PAGE_IN_MS = 360L
+        private const val DATE_ROWS = 4
+        /** O painel de datas só entra se a próxima data estiver a até tantos dias. */
+        private const val DATES_AHEAD_DAYS = 30
     }
 }
