@@ -40,7 +40,7 @@ class FadingEndRecyclerView @JvmOverloads constructor(
             val start = (w - fadeLength).toFloat()
             fadePaint.shader = LinearGradient(
                 start, 0f, w.toFloat(), 0f,
-                Color.TRANSPARENT, Color.BLACK, Shader.TileMode.CLAMP,
+                Color.TRANSPARENT, Color.argb(FADE_MAX_ALPHA, 0, 0, 0), Shader.TileMode.CLAMP,
             )
             shaderWidth = w
         }
@@ -48,5 +48,10 @@ class FadingEndRecyclerView @JvmOverloads constructor(
         super.dispatchDraw(canvas)
         canvas.drawRect((w - fadeLength).toFloat(), 0f, w.toFloat(), h.toFloat(), fadePaint)
         canvas.restoreToCount(save)
+    }
+
+    private companion object {
+        /** Quanto do alpha é apagado na borda (0–255): 140 deixa ~45% de opacidade no limite. */
+        const val FADE_MAX_ALPHA = 140
     }
 }
