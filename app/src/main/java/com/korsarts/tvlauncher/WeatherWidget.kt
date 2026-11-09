@@ -157,7 +157,7 @@ class WeatherWidget(container: ViewGroup) {
         } else {
             context.getString(R.string.weather_feels_only, c.feelsLike.r())
         }
-        setFacts(buildFacts(data))
+        setFacts(buildFacts(data, DayPhase.at(nowMs, sunrise, sunset) == DayPhase.DAY))
 
         // Rótulos no fuso da cidade (pode não ser o do aparelho se a cidade foi escolhida à mão).
         val hourFmt = SimpleDateFormat(if (DateFormat.is24HourFormat(context)) "H'h'" else "h a", ptBr)
@@ -222,8 +222,11 @@ class WeatherWidget(container: ViewGroup) {
         alert.visibility = View.VISIBLE
     }
 
-    /** Umidade e vento sempre; ar e UV quando vieram na previsão. */
-    private fun buildFacts(data: WeatherData): List<String> {
+    /**
+     * Umidade e vento sempre; ar e UV quando vieram na previsão. UV só de dia ([daytime]): do fim
+     * da tarde (1h antes do pôr do sol) até o amanhecer ele é zero ou quase e só ocupa a vez.
+     */
+    private fun buildFacts(data: WeatherData, daytime: Boolean): List<String> {
         val c = data.current
         val list = ArrayList<String>(4)
         list += context.getString(R.string.weather_humidity, c.humidity)
@@ -231,7 +234,7 @@ class WeatherWidget(container: ViewGroup) {
         data.air?.usAqi?.let {
             list += context.getString(R.string.weather_air, context.getString(WeatherScale.aqiLabel(it)), it)
         }
-        c.uv?.r()?.let {
+        if (daytime) c.uv?.r()?.let {
             list += context.getString(R.string.weather_uv, it, context.getString(WeatherScale.uvLabel(it)))
         }
         return list
