@@ -17,6 +17,8 @@ Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick
   livre e RAM livre. O espaço fica âmbar abaixo de 500 MB. Quando a internet volta, o clima que
   tinha falhado é buscado de novo na hora. *Opções do launcher → Sistema* mostra os totais, liga
   ou desliga os indicadores e abre a tela de armazenamento do Android
+- **Protetor de tela** próprio: o fundo dinâmico em tela cheia com relógio, data e clima (veja
+  [Protetor de tela](#protetor-de-tela))
 - Foco sem contorno: o card focado cresce e acende, os demais ficam levemente esmaecidos
 - Atualiza sozinho quando um app é instalado ou removido
 - Serviço de acessibilidade **opcional** para o botão HOME abrir este launcher sem root
@@ -59,6 +61,22 @@ dias, com a chance de chuva quando houver.
     coordenadas ou o nome buscado);
   - [ipwho.is](https://ipwho.is) com fallback para [ipapi.co](https://ipapi.co), **apenas no modo
     automático**, para descobrir a cidade pelo IP (consulta no máximo a cada 12 h).
+
+## Protetor de tela
+
+O launcher registra um protetor de tela do Android com o céu dinâmico (no estilo escolhido), o
+relógio, a data e o clima atual. O bloco muda de lugar a cada 2 minutos para não marcar a tela, e
+a previsão segue o intervalo de atualização configurado no launcher.
+
+Para ativar: *Opções do launcher → Aparência → Protetor de tela → Abrir configurações do protetor*
+(ou **Configurações → Preferências do dispositivo → Protetor de tela**) e escolha
+**TV Launcher: relógio e clima**. *Testar agora* inicia na hora o protetor que estiver escolhido.
+
+Se a TV não listar protetores de outros apps, dá para definir por ADB:
+```bash
+adb shell settings put secure screensaver_components com.korsarts.tvlauncher/.ScreensaverService
+adb shell settings put secure screensaver_enabled 1
+```
 
 ## Instalação no Mi TV Stick
 

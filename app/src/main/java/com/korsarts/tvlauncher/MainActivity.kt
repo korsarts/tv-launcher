@@ -26,7 +26,6 @@ import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
 import java.text.Normalizer
-import java.util.TimeZone
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -444,19 +443,8 @@ class MainActivity : Activity(), AppAdapter.Listener {
         sky.setState(skyTarget(sky.style), durationMs)
     }
 
-    private fun skyTarget(style: SkyStyle): SkyState {
-        val now = System.currentTimeMillis()
-        val data = weatherData?.takeIf { prefs.weatherEnabled }
-        val (rise, set) = data?.sunTimes(now) ?: localSunTimes(now)
-        return SkyState.compute(style, now, rise, set, data?.current?.code, data?.current?.cloudCover)
-    }
-
-    /** Sem previsão: 6h/18h no fuso do aparelho. */
-    private fun localSunTimes(now: Long): Pair<Long, Long> {
-        val offset = TimeZone.getDefault().getOffset(now)
-        val midnight = (now + offset).floorDiv(DAY_MS) * DAY_MS - offset
-        return midnight + 6 * HOUR_MS to midnight + 18 * HOUR_MS
-    }
+    private fun skyTarget(style: SkyStyle): SkyState =
+        SkyState.now(style, weatherData?.takeIf { prefs.weatherEnabled })
 
     private fun startRefreshSpin() {
         val running = refreshSpin
@@ -927,9 +915,47 @@ class MainActivity : Activity(), AppAdapter.Listener {
             ) {
                 panel.push(cardSizePage())
             },
+            SidePanel.Item(
+                R.drawable.ic_schedule, getString(R.string.opt_screensaver), getString(R.string.opt_screensaver_hint),
+                keepOpen = true,
+            ) {
+                panel.push(screensaverPage())
+            },
             backItem(),
         )
         return SidePanel.Page(title = getString(R.string.opt_appearance), items = items)
+    }
+
+    private fun screensaverPage(): SidePanel.Page {
+        val items = listOf(
+            SidePanel.Item(
+                R.drawable.ic_settings, getString(R.string.screensaver_settings),
+                getString(R.string.screensaver_settings_hint),
+            ) {
+                if (!safeStart(Intent(Settings.ACTION_DREAM_SETTINGS))) {
+                    Toast.makeText(this, R.string.screensaver_settings_missing, Toast.LENGTH_LONG).show()
+                    openSystemSettings()
+                }
+            },
+            SidePanel.Item(
+                R.drawable.ic_visibility, getString(R.string.screensaver_test),
+                getString(R.string.screensaver_test_hint),
+            ) {
+                // Atalho do próprio Android para iniciar agora o protetor selecionado.
+                val start = Intent(Intent.ACTION_MAIN)
+                    .setClassName("com.android.systemui", "com.android.systemui.Somnambulator")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (!safeStart(start)) {
+                    Toast.makeText(this, R.string.screensaver_test_missing, Toast.LENGTH_LONG).show()
+                }
+            },
+            backItem(),
+        )
+        return SidePanel.Page(
+            title = getString(R.string.opt_screensaver),
+            body = getString(R.string.screensaver_body),
+            items = items,
+        )
     }
 
     private fun cardSizePage(): SidePanel.Page {
@@ -1078,7 +1104,6 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     private companion object {
         const val HOUR_MS = 60 * 60 * 1000L
-        const val DAY_MS = 24 * HOUR_MS
         const val SKY_TICK_MS = 60 * 1000L
         const val SKY_TICK_ANIM_MS = 1500L
         /** Mudança de clima/entrada: transição lenta, quase imperceptível como corte. */

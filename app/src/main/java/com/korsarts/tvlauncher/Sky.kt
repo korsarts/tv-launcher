@@ -164,6 +164,19 @@ class SkyState(
             0f, 0.5f, 0.5f, 0.5f,
         )
 
+        /**
+         * Céu de [style] para agora. Com [data], usa o nascer/pôr do sol reais da cidade e o tempo
+         * atual; sem ela, estima o sol às 6h/18h no fuso do aparelho.
+         */
+        fun now(style: SkyStyle, data: WeatherData?, nowMs: Long = System.currentTimeMillis()): SkyState {
+            val (rise, set) = data?.sunTimes(nowMs) ?: run {
+                val offset = java.util.TimeZone.getDefault().getOffset(nowMs)
+                val midnight = (nowMs + offset).floorDiv(DAY) * DAY - offset
+                midnight + 6 * 60 * MIN to midnight + 18 * 60 * MIN
+            }
+            return compute(style, nowMs, rise, set, data?.current?.code, data?.current?.cloudCover)
+        }
+
         /** Céu de [style] para [nowMs] com nascer/pôr [sunrise]/[sunset] e o tempo atual ([code] WMO, nuvens em %). */
         fun compute(style: SkyStyle, nowMs: Long, sunrise: Long, sunset: Long, code: Int?, cloudCover: Int?): SkyState {
             val p = style.palette

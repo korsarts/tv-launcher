@@ -74,5 +74,19 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service" />
         </service>
+
+        <!-- Protetor de tela (céu dinâmico + relógio + clima). O usuário escolhe em
+             Configurações > Protetor de tela; só o sistema pode se ligar a ele. -->
+        <service
+            android:name=".ScreensaverService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher"
+            android:label="@string/screensaver_label"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
