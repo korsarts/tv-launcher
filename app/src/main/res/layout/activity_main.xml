@@ -56,6 +56,13 @@
                     android:textSize="15sp" />
 
                 <ImageButton
+                    android:id="@+id/btn_search"
+                    style="@style/TopButton"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="@string/search_title"
+                    android:src="@drawable/ic_search" />
+
+                <ImageButton
                     android:id="@+id/btn_refresh"
                     style="@style/TopButton"
                     android:layout_marginEnd="8dp"

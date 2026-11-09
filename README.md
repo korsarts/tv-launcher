@@ -9,6 +9,10 @@ Launcher leve e personalizado para Android TV, feito para o **Xiaomi Mi TV Stick
 - Menu lateral do app (segure OK ou aperte MENU): favoritar, mover (◀ ▶ e OK para confirmar), ocultar, informações, desinstalar
 - Tela inicial com o clima em cima e os favoritos embaixo; ▼ nos favoritos desliza para a grade
   em tela cheia, ▲ na primeira linha volta
+- **Busca de apps:** a lupa no topo (ou o botão de busca do controle) abre um campo; os resultados
+  aparecem enquanto você digita, sem diferenciar maiúsculas nem acentos
+- **Tamanho dos cards:** grandes, médios ou pequenos (4, 5 ou 6 por linha na grade; os favoritos
+  acompanham), em *Opções do launcher → Aparência → Tamanho dos cards*
 - Foco sem contorno: o card focado cresce e acende, os demais ficam levemente esmaecidos
 - Atualiza sozinho quando um app é instalado ou removido
 - Serviço de acessibilidade **opcional** para o botão HOME abrir este launcher sem root
@@ -28,8 +32,8 @@ dias, com a chance de chuva quando houver.
   cidade, e o clima atual (nuvens dessaturam e escurecem; chuva, tempestade, neblina e neve dão um
   tom próprio). As mudanças são animadas. O céu é desenhado num bitmap de 192x108 esticado com
   filtro, então custa na GPU o mesmo que um degradê simples. Liga/desliga em
-  *Opções do launcher → Fundo dinâmico* (desligado volta ao fundo escuro fixo).
-- **Estilos do fundo** (*Opções do launcher → Estilo do fundo*, troca com fade): Mesh sóbrio,
+  *Opções do launcher → Aparência → Fundo dinâmico* (desligado volta ao fundo escuro fixo).
+- **Estilos do fundo** (*Opções do launcher → Aparência → Estilo do fundo*, troca com fade): Mesh sóbrio,
   Aurora (faixas de luz onduladas), Tonal suave, Vibrante, Minimal escuro e Duotone. Todos seguem
   a hora do dia e o clima.
 - **Ícones por hora do dia:** amanhecer e pôr do sol têm ícones próprios, a noite mostra lua e

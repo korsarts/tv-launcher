@@ -41,6 +41,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_SKY_STYLE, null)
         set(value) = sp.edit().putString(KEY_SKY_STYLE, value).apply()
 
+    /** Cards por linha na grade (4 = grandes, 5 = médios, 6 = pequenos); os favoritos acompanham. */
+    var gridColumns: Int
+        get() = sp.getInt(KEY_GRID_COLUMNS, 5).coerceIn(4, 6)
+        set(value) = sp.edit().putInt(KEY_GRID_COLUMNS, value).apply()
+
     /** Intervalo da atualização automática do clima, em minutos (0 = desligada). */
     var weatherIntervalMin: Int
         get() = sp.getInt(KEY_WEATHER_INTERVAL, 30)
@@ -109,6 +114,7 @@ class Prefs(context: Context) {
         private const val KEY_WEATHER_ENABLED = "weather_enabled"
         private const val KEY_SKY_ENABLED = "sky_enabled"
         private const val KEY_SKY_STYLE = "sky_style"
+        private const val KEY_GRID_COLUMNS = "grid_columns"
         private const val KEY_WEATHER_INTERVAL = "weather_interval_min"
         private const val KEY_WEATHER_NAME = "weather_name"
         private const val KEY_WEATHER_REGION = "weather_region"

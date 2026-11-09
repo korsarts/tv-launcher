@@ -24,6 +24,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.RecyclerView
+import java.text.Normalizer
 import java.util.TimeZone
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -110,12 +111,6 @@ class MainActivity : Activity(), AppAdapter.Listener {
         favoritesAdapter = AppAdapter(this)
         appsAdapter = AppAdapter(this)
 
-        val res = resources
-        val peekH = res.getDimensionPixelSize(R.dimen.card_width) / 2
-        val peekV = res.getDimensionPixelSize(R.dimen.card_height) / 2
-        spanCount = computeSpanCount()
-
-        favoritesView.layoutManager = RevealLinearLayoutManager(this, peekH)
         favoritesView.adapter = favoritesAdapter
         // Animador só nos favoritos, para a reordenação deslizar. Sem crossfade de "change".
         favoritesView.itemAnimator = DefaultItemAnimator().apply {
@@ -125,11 +120,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
             removeDuration = 120
         }
 
-        appsView.layoutManager = RevealGridLayoutManager(this, spanCount, peekV)
         appsView.adapter = appsAdapter
         appsView.itemAnimator = null
         appsView.setHasFixedSize(true)
-        appsView.setItemViewCacheSize(spanCount * 2)
+        applyCardSize()
 
         // Começam invisíveis e entram com fade quando os apps carregam.
         favoritesView.alpha = 0f
@@ -156,6 +150,7 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
         findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { openSystemSettings() }
         findViewById<ImageButton>(R.id.btn_options).setOnClickListener { showLauncherOptions() }
+        findViewById<ImageButton>(R.id.btn_search).setOnClickListener { openAppSearch() }
         refreshButton = findViewById(R.id.btn_refresh)
         refreshButton.visibility = if (prefs.weatherEnabled) View.VISIBLE else View.GONE
         refreshButton.setOnClickListener { refreshWeather() }
@@ -226,6 +221,11 @@ class MainActivity : Activity(), AppAdapter.Listener {
         // MENU com o painel aberto fecha o painel.
         if (event.keyCode == KeyEvent.KEYCODE_MENU && panel.isOpen) {
             if (event.action == KeyEvent.ACTION_UP) panel.close()
+            return true
+        }
+        // Botão de busca do controle/teclado (quando existe): abre a busca de apps.
+        if (event.keyCode == KeyEvent.KEYCODE_SEARCH && !panel.isOpen) {
+            if (event.action == KeyEvent.ACTION_UP) openAppSearch()
             return true
         }
         return super.dispatchKeyEvent(event)
@@ -558,17 +558,102 @@ class MainActivity : Activity(), AppAdapter.Listener {
         rv.requestLayout()
     }
 
-    private fun computeSpanCount(): Int {
+    /**
+     * Aplica o tamanho de card escolhido ([Prefs.gridColumns] cards por linha na grade, 16:9) às
+     * duas listas. Os cards já criados têm o tamanho antigo, então são descartados e recriados.
+     */
+    private fun applyCardSize() {
         val res = resources
+        val columns = prefs.gridColumns
         val available = res.displayMetrics.widthPixels - 2 * res.getDimensionPixelSize(R.dimen.row_padding_h)
-        val cell = res.getDimensionPixelSize(R.dimen.card_width) +
-            2 * res.getDimensionPixelSize(R.dimen.card_margin)
-        return (available / cell).coerceIn(2, 8)
+        val width = available / columns - 2 * res.getDimensionPixelSize(R.dimen.card_margin)
+        val height = width * 9 / 16
+        spanCount = columns
+        favoritesAdapter.setCardSize(width, height)
+        appsAdapter.setCardSize(width, height)
+        for (rv in arrayOf(favoritesView, appsView)) {
+            val adapter = rv.adapter
+            rv.adapter = null
+            rv.recycledViewPool.clear()
+            rv.layoutManager = if (rv === favoritesView) {
+                RevealLinearLayoutManager(this, width / 2)
+            } else {
+                RevealGridLayoutManager(this, columns, height / 2)
+            }
+            rv.adapter = adapter
+        }
+        appsView.setItemViewCacheSize(columns * 2)
+    }
+
+    private fun setGridColumns(columns: Int) {
+        if (columns == prefs.gridColumns) return
+        prefs.gridColumns = columns
+        exitMoveMode()
+        applyCardSize()
+        panel.parentItem(getString(R.string.opt_card_size))?.hint = getString(cardSizeLabel(columns))
+    }
+
+    private fun cardSizeLabel(columns: Int): Int = when (columns) {
+        4 -> R.string.card_size_large
+        6 -> R.string.card_size_small
+        else -> R.string.card_size_medium
     }
 
     // ---------------------------------------------------------------- cards
 
     override fun onAppClick(app: AppEntry, card: View) = launch(app, card)
+
+    // ---------------------------------------------------------------- busca
+
+    private fun openAppSearch() {
+        lateinit var page: SidePanel.Page
+        val input = SidePanel.Input(
+            getString(R.string.search_hint),
+            showKeyboard = true,
+            onChange = { query ->
+                val items = searchItems(query)
+                panel.setItems(page, items)
+                panel.setBody(page, getString(if (query.isEmpty()) R.string.search_body else R.string.search_empty).takeIf { items.isEmpty() })
+            },
+            // Confirmar no teclado leva o foco ao primeiro resultado.
+            onSubmit = { if (page.items.isNotEmpty()) panel.focusItem(0) },
+        )
+        page = SidePanel.Page(
+            title = getString(R.string.search_title),
+            body = getString(R.string.search_body),
+            input = input,
+            items = emptyList(),
+        )
+        openPanel(page)
+    }
+
+    /** Apps cujo nome contém [query], sem diferenciar maiúsculas nem acentos; começo do nome primeiro. */
+    private fun searchItems(query: String): List<SidePanel.Item> {
+        val q = searchKey(query)
+        if (q.isEmpty()) return emptyList()
+        val hidden = if (prefs.showHidden) emptySet() else prefs.hidden
+        return allApps.asSequence()
+            .filter { it.packageName !in hidden }
+            .map { it to searchKey(it.label) }
+            .filter { (_, key) -> q in key }
+            .sortedBy { (_, key) ->
+                when {
+                    key.startsWith(q) -> 0
+                    " $q" in key -> 1 // começo de outra palavra do nome
+                    else -> 2
+                }
+            }
+            .take(SEARCH_RESULTS)
+            .map { (app, _) ->
+                // Cópia do drawable: o original está em uso pelo card do app na grade.
+                val icon = app.icon.constantState?.newDrawable(resources) ?: app.icon
+                SidePanel.Item(0, app.label, iconDrawable = icon) { launch(app, null) }
+            }
+            .toList()
+    }
+
+    private fun searchKey(text: String): String =
+        Normalizer.normalize(text, Normalizer.Form.NFD).replace(DIACRITICS, "").lowercase().trim()
 
     override fun onAppMenu(app: AppEntry) {
         if (movingPkg == null) showAppMenu(app)
@@ -633,9 +718,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
 
     // ---------------------------------------------------------------- ações
 
-    private fun launch(app: AppEntry, card: View) {
+    /** [card] nulo (app aberto pela busca): abre com a animação padrão do sistema. */
+    private fun launch(app: AppEntry, card: View?) {
         // Abre "crescendo" a partir do card: animação de janela do sistema, sem custo para nós.
-        val options = ActivityOptions.makeScaleUpAnimation(card, 0, 0, card.width, card.height).toBundle()
+        val options = card?.let { ActivityOptions.makeScaleUpAnimation(it, 0, 0, it.width, it.height).toBundle() }
         if (!safeStart(app.launchIntent(), options)) {
             // Fallback: intent de launch padrão do pacote.
             val fallback = packageManager.getLeanbackLaunchIntentForPackage(app.packageName)
@@ -749,16 +835,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
                 }
             },
             SidePanel.Item(
-                R.drawable.ic_gradient, getString(R.string.opt_sky), getString(R.string.opt_sky_hint),
-                checked = { prefs.skyEnabled },
-            ) {
-                setSkyEnabled(!prefs.skyEnabled)
-            },
-            SidePanel.Item(
-                R.drawable.ic_tune, getString(R.string.opt_sky_style), getString(sky.style.label),
+                R.drawable.ic_gradient, getString(R.string.opt_appearance), getString(R.string.opt_appearance_hint),
                 keepOpen = true,
             ) {
-                panel.push(skyStylePage())
+                panel.push(appearancePage())
             },
             SidePanel.Item(
                 R.drawable.ic_weather, getString(R.string.opt_weather), getString(R.string.opt_weather_hint),
@@ -771,6 +851,46 @@ class MainActivity : Activity(), AppAdapter.Listener {
             },
         )
         openPanel(SidePanel.Page(title = getString(R.string.launcher_options), items = items))
+    }
+
+    private fun appearancePage(): SidePanel.Page {
+        val items = listOf(
+            SidePanel.Item(
+                R.drawable.ic_gradient, getString(R.string.opt_sky), getString(R.string.opt_sky_hint),
+                checked = { prefs.skyEnabled },
+            ) {
+                setSkyEnabled(!prefs.skyEnabled)
+            },
+            SidePanel.Item(
+                R.drawable.ic_tune, getString(R.string.opt_sky_style), getString(sky.style.label),
+                keepOpen = true,
+            ) {
+                panel.push(skyStylePage())
+            },
+            SidePanel.Item(
+                R.drawable.ic_grid, getString(R.string.opt_card_size), getString(cardSizeLabel(prefs.gridColumns)),
+                keepOpen = true,
+            ) {
+                panel.push(cardSizePage())
+            },
+            backItem(),
+        )
+        return SidePanel.Page(title = getString(R.string.opt_appearance), items = items)
+    }
+
+    private fun cardSizePage(): SidePanel.Page {
+        val items = CARD_COLUMNS.map { columns ->
+            SidePanel.Item(
+                R.drawable.ic_grid, getString(cardSizeLabel(columns)),
+                resources.getQuantityString(R.plurals.card_size_hint, columns, columns),
+                checked = { prefs.gridColumns == columns }, radio = true,
+            ) {
+                setGridColumns(columns)
+            }
+        }
+        return SidePanel.Page(title = getString(R.string.opt_card_size), items = items).apply {
+            focusIndex = CARD_COLUMNS.indexOf(prefs.gridColumns).coerceAtLeast(0)
+        }
     }
 
     private fun skyStylePage(): SidePanel.Page {
@@ -915,5 +1035,10 @@ class MainActivity : Activity(), AppAdapter.Listener {
         /** Opções de atualização automática, em minutos (0 = desligada). */
         val WEATHER_INTERVALS = intArrayOf(15, 30, 60, 120, 180, 360, 0)
         const val WEATHER_RETRY_MS = 5 * 60 * 1000L
+        /** Cards por linha: grandes, médios (padrão), pequenos. */
+        val CARD_COLUMNS = intArrayOf(4, 5, 6)
+        const val SEARCH_RESULTS = 8
+        /** Marcas de acento soltas pela decomposição NFD. */
+        val DIACRITICS = Regex("\\p{Mn}+")
     }
 }

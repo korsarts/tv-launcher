@@ -1,7 +1,10 @@
 package com.korsarts.tvlauncher
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -34,12 +37,19 @@ class SidePanel(
         val radio: Boolean = false,
         /** Ações que abrem subpágina devem manter o painel aberto. */
         val keepOpen: Boolean = checked != null,
+        /** Ícone pronto (ex.: o de um app), mostrado sem o tint do menu no lugar de [icon]. */
+        val iconDrawable: Drawable? = null,
         val action: () -> Unit,
     )
 
-    /** Campo de texto no topo da página; [onSubmit] roda ao confirmar no teclado. */
+    /**
+     * Campo de texto no topo da página; [onSubmit] roda ao confirmar no teclado e [onChange], a
+     * cada letra digitada. [showKeyboard] abre o teclado junto com a página.
+     */
     class Input(
         val hint: CharSequence,
+        val showKeyboard: Boolean = false,
+        val onChange: ((String) -> Unit)? = null,
         val onSubmit: (String) -> Unit,
     ) {
         /** Último texto digitado, restaurado ao voltar para a página. */
@@ -51,9 +61,13 @@ class SidePanel(
         val subtitle: CharSequence? = null,
         val icon: Drawable? = null,
         var body: CharSequence? = null,
-        val items: List<Item>,
+        items: List<Item>,
         val input: Input? = null,
     ) {
+        /** Troque com [SidePanel.setItems] para a tela acompanhar. */
+        var items: List<Item> = items
+            internal set
+
         /** Linha focada ao (re)abrir; -1 = campo de texto. */
         internal var focusIndex = if (input != null) -1 else 0
     }
@@ -74,6 +88,12 @@ class SidePanel(
 
     private val stack = ArrayList<Page>()
 
+    /** Tint original do ícone das linhas (vem do XML), reposto depois de um [Item.iconDrawable]. */
+    private var rowIconTint: ColorStateList? = null
+
+    /** true enquanto [show] preenche o campo: não é o usuário digitando. */
+    private var fillingInput = false
+
     val isOpen: Boolean get() = stack.isNotEmpty()
 
     init {
@@ -93,6 +113,16 @@ class SidePanel(
                 else -> false
             }
         }
+        inputView.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (fillingInput) return
+                val input = currentPage?.input ?: return
+                input.text = s?.toString().orEmpty()
+                input.onChange?.invoke(input.text.trim())
+            }
+        })
     }
 
     /** Página no topo da pilha (a que está na tela). */
@@ -110,6 +140,15 @@ class SidePanel(
             bodyView.visibility = if (body.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
     }
+
+    /** Troca as linhas de [page]; se ela estiver na tela, atualiza na hora sem mexer no foco. */
+    fun setItems(page: Page, items: List<Item>) {
+        page.items = items
+        if (currentPage === page) bindItems(page)
+    }
+
+    /** Leva o foco para a linha [index] da página atual (ex.: do campo para o 1º resultado). */
+    fun focusItem(index: Int) = focusRow(index)
 
     private fun submitInput() {
         val input = currentPage?.input ?: return
@@ -198,27 +237,16 @@ class SidePanel(
         val input = page.input
         if (input != null) {
             inputView.hint = input.hint
+            fillingInput = true
             inputView.setText(input.text)
+            fillingInput = false
             inputView.setSelection(inputView.text.length)
             inputView.visibility = View.VISIBLE
         } else {
             inputView.visibility = View.GONE
         }
 
-        // Reaproveita as linhas já infladas.
-        while (itemsView.childCount < page.items.size) {
-            itemsView.addView(inflater.inflate(R.layout.item_menu, itemsView, false))
-        }
-        for (i in 0 until itemsView.childCount) {
-            val row = itemsView.getChildAt(i)
-            if (i < page.items.size) {
-                row.visibility = View.VISIBLE
-                bindRow(row, page.items[i])
-            } else {
-                row.visibility = View.GONE
-                row.setOnClickListener(null)
-            }
-        }
+        bindItems(page)
         scroll.scrollTo(0, 0)
 
         if (direction != 0) {
@@ -238,8 +266,34 @@ class SidePanel(
         }
     }
 
+    private fun bindItems(page: Page) {
+        // Reaproveita as linhas já infladas.
+        while (itemsView.childCount < page.items.size) {
+            val row = inflater.inflate(R.layout.item_menu, itemsView, false)
+            if (rowIconTint == null) rowIconTint = row.findViewById<ImageView>(R.id.menu_icon).imageTintList
+            itemsView.addView(row)
+        }
+        for (i in 0 until itemsView.childCount) {
+            val row = itemsView.getChildAt(i)
+            if (i < page.items.size) {
+                row.visibility = View.VISIBLE
+                bindRow(row, page.items[i])
+            } else {
+                row.visibility = View.GONE
+                row.setOnClickListener(null)
+            }
+        }
+    }
+
     private fun bindRow(row: View, item: Item) {
-        row.findViewById<ImageView>(R.id.menu_icon).setImageResource(item.icon)
+        val icon = row.findViewById<ImageView>(R.id.menu_icon)
+        if (item.iconDrawable != null) {
+            icon.imageTintList = null
+            icon.setImageDrawable(item.iconDrawable)
+        } else {
+            icon.imageTintList = rowIconTint
+            icon.setImageResource(item.icon)
+        }
         row.findViewById<TextView>(R.id.menu_label).text = item.label
         val hint = row.findViewById<TextView>(R.id.menu_hint)
         hint.text = item.hint
@@ -293,7 +347,19 @@ class SidePanel(
 
     /** Página com campo começa nele; as demais, na linha salva. */
     private fun focusPage(page: Page) {
-        if (page.input != null && page.focusIndex < 0) inputView.requestFocus() else focusRow(page.focusIndex)
+        if (page.input != null && page.focusIndex < 0) {
+            inputView.requestFocus()
+            if (page.input.showKeyboard) {
+                // Depois do layout: antes disso o campo ainda não está pronto para o teclado.
+                inputView.post {
+                    if (currentPage !== page || !inputView.isFocused) return@post
+                    val imm = inputView.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.showSoftInput(inputView, 0)
+                }
+            }
+        } else {
+            focusRow(page.focusIndex)
+        }
     }
 
     private fun focusRow(index: Int) {

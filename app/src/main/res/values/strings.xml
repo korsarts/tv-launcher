@@ -26,6 +26,20 @@
     <string name="opt_redirect_hint">Requer o serviço de acessibilidade</string>
     <string name="opt_accessibility">Ativar botão HOME</string>
     <string name="opt_accessibility_hint">Configurações de acessibilidade</string>
+    <string name="opt_appearance">Aparência</string>
+    <string name="opt_appearance_hint">Fundo e tamanho dos cards</string>
+    <string name="opt_card_size">Tamanho dos cards</string>
+    <string name="card_size_large">Grandes</string>
+    <string name="card_size_medium">Médios (padrão)</string>
+    <string name="card_size_small">Pequenos</string>
+    <plurals name="card_size_hint">
+        <item quantity="one">%d por linha</item>
+        <item quantity="other">%d por linha</item>
+    </plurals>
+    <string name="search_title">Buscar apps</string>
+    <string name="search_hint">Nome do app</string>
+    <string name="search_body">Digite o nome do app.</string>
+    <string name="search_empty">Nenhum app encontrado.</string>
     <string name="opt_about">Sobre / como definir como padrão</string>
     <string name="back">Voltar</string>
     <string name="opt_version">Versão %1$s</string>

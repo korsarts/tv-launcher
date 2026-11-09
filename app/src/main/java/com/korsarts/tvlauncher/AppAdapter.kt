@@ -33,6 +33,15 @@ class AppAdapter(
     /** Pacote em modo mover (reordenação de favoritos). */
     private var moving: String? = null
 
+    /** Tamanho do card em px; 0 = o do layout. Vale para os holders criados depois da troca. */
+    private var cardWidth = 0
+    private var cardHeight = 0
+
+    fun setCardSize(width: Int, height: Int) {
+        cardWidth = width
+        cardHeight = height
+    }
+
     init {
         setHasStableIds(true)
     }
@@ -91,8 +100,12 @@ class AppAdapter(
             // (filho do item) fazia ele passar dos limites do item, e o RecyclerView recorta
             // cada item nos próprios limites: as bordas do card focado saíam cortadas.
             val res = view.resources
-            view.pivotX = res.getDimensionPixelSize(R.dimen.card_width) / 2f
-            view.pivotY = res.getDimensionPixelSize(R.dimen.card_height) / 2f
+            val width = if (cardWidth > 0) cardWidth else res.getDimensionPixelSize(R.dimen.card_width)
+            val height = if (cardHeight > 0) cardHeight else res.getDimensionPixelSize(R.dimen.card_height)
+            card.layoutParams = card.layoutParams.also { it.width = width; it.height = height }
+            label.layoutParams = label.layoutParams.also { it.width = width }
+            view.pivotX = width / 2f
+            view.pivotY = height / 2f
             // Listeners criados uma vez por ViewHolder, não a cada bind.
             view.setOnClickListener(this)
             view.setOnLongClickListener(this)
